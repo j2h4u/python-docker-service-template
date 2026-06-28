@@ -1,0 +1,12 @@
+services:
+  python-docker-service-template:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: python-docker-service-template:local
+    container_name: python-docker-service-template
+    restart: unless-stopped
+    init: true
+    mem_limit: 1g
+    environment:
+      PYTHONUNBUFFERED: "1"
