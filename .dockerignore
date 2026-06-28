@@ -1,0 +1,16 @@
+.git/
+.github/
+.planning/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.basedpyright/
+.import_linter_cache/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.log
+build/
+dist/
+htmlcov/

@@ -1,0 +1,134 @@
+[project]
+name = "python-docker-service-template"
+version = "0.1.0"
+description = "Command-line tools for Python Docker Service Template."
+requires-python = ">=3.14"
+dependencies = [
+    "typer>=0.26.7",
+]
+
+[project.scripts]
+template-service = "template_service.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/template_service"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+tmp_path_retention_policy = "failed"
+tmp_path_retention_count = 1
+
+[tool.ruff]
+src = ["src", "scripts", "tests"]
+line-length = 120
+target-version = "py314"
+extend-exclude = [".planning"]
+
+[tool.ruff.lint]
+explicit-preview-rules = true
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "B",
+    "BLE",
+    "UP",
+    "C4",
+    "PIE",
+    "RET",
+    "ISC",
+    "RSE",
+    "FLY",
+    "FURB",
+    "RUF",
+    "PERF",
+    "SIM",
+    "PTH",
+    "DTZ",
+    "PGH",
+    "PLE",
+    "LOG",
+    "G",
+    "N818",
+    "C90",
+    "PLR09",
+    "PLR17",
+    "PLR2004",
+]
+ignore = ["ISC001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "DTZ",
+    "PERF401",
+    "PLR2004",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ["src/template_service", "scripts", "tests"]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+reportAny = "error"
+reportExplicitAny = "error"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownMemberType = "none"
+reportUnknownParameterType = "none"
+reportUnknownLambdaType = "none"
+reportMissingParameterType = "error"
+reportMissingTypeArgument = "none"
+reportUnannotatedClassAttribute = "none"
+reportUnusedCallResult = "none"
+reportImplicitStringConcatenation = "none"
+reportPrivateUsage = "none"
+
+[tool.vulture]
+paths = ["src/template_service", "tests"]
+min_confidence = 80
+ignore_decorators = [
+    "@app.callback",
+    "@app.command",
+]
+
+[tool.coverage.run]
+source = ["src/template_service"]
+branch = true
+sigterm = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.importlinter]
+root_package = "template_service"
+
+[[tool.importlinter.contracts]]
+id = "core-independent-from-cli"
+name = "Core stays independent from CLI"
+type = "forbidden"
+source_modules = ["template_service.core"]
+forbidden_modules = ["template_service.cli"]
+
+[dependency-groups]
+dev = [
+    "actionlint-py>=1.7.12.24",
+    "basedpyright>=1.39.8",
+    "import-linter>=2.12",
+    "pytest>=9.1.1",
+    "pytest-cov>=7",
+    "pytest-crap>=0.3.0",
+    "pytest-xdist>=3.8.0",
+    "radon>=6.0.1",
+    "ruff>=0.15.18",
+    "vulture>=2.16",
+]
