@@ -83,6 +83,13 @@ gh api -X PATCH "repos/$REPO" --input - <<'JSON'
 }
 JSON
 
+# This template uses the copied CodeQL workflow. Do not also enable CodeQL
+# default setup, because GitHub rejects SARIF from advanced and default setup
+# when both are active.
+gh api -X PATCH "repos/$REPO/code-scanning/default-setup" \
+  -f state=not-configured \
+  --silent || true
+
 # Run copied workflows once so code scanning and CI status are initialized.
 gh workflow run ci.yml --ref main
 gh workflow run codeql.yml --ref main

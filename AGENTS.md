@@ -38,6 +38,10 @@ gh api -X PATCH "repos/$REPO" --input - <<'JSON'
 }
 JSON
 
+gh api -X PATCH "repos/$REPO/code-scanning/default-setup" \
+  -f state=not-configured \
+  --silent || true
+
 gh workflow run ci.yml --ref main
 gh workflow run codeql.yml --ref main
 
