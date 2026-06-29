@@ -125,6 +125,7 @@ forbidden_modules = ["template_service.cli"]
 dev = [
     "actionlint-py>=1.7.12.24",
     "basedpyright>=1.39.8",
+    "deptry>=0.25.1",
     "import-linter>=2.12",
     "pytest>=9.1.1",
     "pytest-cov>=7",

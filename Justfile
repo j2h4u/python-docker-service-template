@@ -25,6 +25,10 @@ import-contracts:
 actionlint:
     uv run actionlint
 
+# Check declared Python dependencies against imports.
+deptry:
+    uv run deptry src scripts tests --per-rule-ignores DEP004=radon
+
 # Run the canonical static type checker on production code.
 typecheck:
     uv run basedpyright src/template_service scripts
@@ -43,7 +47,7 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint typecheck typecheck-tests import-contracts actionlint compile dead-code
+check: fmt-check lint typecheck typecheck-tests import-contracts actionlint deptry compile dead-code
 
 # Unit tests.
 unit:

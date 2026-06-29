@@ -3,8 +3,8 @@
 This project uses hard gates. Do not weaken, skip, or locally suppress them to
 make a change pass.
 
-- `just check` is the static gate: Ruff, types, imports, workflow lint, compile,
-  and dead-code checks must pass.
+- `just check` is the static gate: Ruff, types, imports, workflow lint,
+  dependency hygiene, compile, and dead-code checks must pass.
 - Ruff complexity rules are blocking and use Ruff defaults.
 - `just crap-check` is a blocking CRAP threshold gate for every function.
 - `just unit` must pass for behavior changes.
