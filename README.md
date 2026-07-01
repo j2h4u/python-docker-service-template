@@ -21,7 +21,11 @@ quality gates.
 ## Gates
 
 `just verify` is the local contract: static checks, CRAP threshold, unit tests,
-and Docker build.
+Docker/Compose validation, and Docker build.
+
+The static gate includes Ruff, preview complexity/refactor checks, production
+print checks, basedpyright, import-linter, actionlint, deptry, compile checks,
+and Vulture over source, scripts, and tests. Pytest runs in strict mode.
 
 Run individual gates while iterating:
 
@@ -29,6 +33,7 @@ Run individual gates while iterating:
 just check
 just crap-check
 just unit
+just docker-check
 just docker-build
 ```
 
