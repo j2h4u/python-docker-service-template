@@ -24,6 +24,13 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 tmp_path_retention_policy = "failed"
 tmp_path_retention_count = 1
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "-W",
+    "error",
+]
+xfail_strict = true
 
 [tool.ruff]
 src = ["src", "scripts", "tests"]
@@ -59,6 +66,7 @@ select = [
     "LOG",
     "G",
     "N818",
+    "ARG",
     "C90",
     "PLR09",
     "PLR17",
@@ -95,7 +103,7 @@ reportImplicitStringConcatenation = "none"
 reportPrivateUsage = "none"
 
 [tool.vulture]
-paths = ["src/template_service", "tests"]
+paths = ["src/template_service", "scripts", "tests"]
 min_confidence = 80
 ignore_decorators = [
     "@app.callback",

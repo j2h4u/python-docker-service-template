@@ -13,6 +13,14 @@ compile:
 lint:
     uv run ruff check --preview src scripts tests
 
+# Check preview-only complexity/refactor rules explicitly.
+preview-complexity-lint:
+    uv run ruff check --preview --select PLR0914,PLR0916,PLR0917 src scripts tests
+
+# Check production code for accidental debug prints.
+print-lint:
+    uv run ruff check --preview --select T20 src/template_service
+
 # Check formatting without writing.
 fmt-check:
     uv run ruff format --no-preview --check src scripts tests
@@ -47,7 +55,7 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint typecheck typecheck-tests import-contracts actionlint deptry compile dead-code
+check: fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts actionlint deptry compile dead-code
 
 # Unit tests.
 unit:
@@ -68,8 +76,13 @@ crap-check:
     uv run pytest --cov=src/template_service --cov-report=json:"$coverage_file"; \
     uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30
 
+# Validate Docker and Compose files without running the service.
+docker-check:
+    docker compose config --quiet
+    docker build --check .
+
 # Build the Docker image.
-docker-build:
+docker-build: docker-check
     docker build -t python-docker-service-template:local .
 
 # Recreate the local Docker service.
