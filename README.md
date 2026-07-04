@@ -37,6 +37,12 @@ just docker-check
 just docker-build
 ```
 
+## Best Practices
+
+This repository also stores reusable QA and runtime practices. See
+`BEST_PRACTICES.md` for the canonical guidance on Python gates, Docker build
+context, virtual environment handling, and post-template GitHub security setup.
+
 ## Docker
 
 Build and run the service locally:
@@ -54,21 +60,9 @@ Compose service defaults to a 1 GiB memory limit.
 ## GitHub Setup
 
 The repository includes CI, CodeQL, dependency review, and Dependabot
-configuration. After publishing a new repository, enable these GitHub security
-features in the repository or organization settings. GitHub template creation
-copies files such as workflows and `.github/dependabot.yml`, but repository
-security settings are not reliable template outputs.
-
-- Dependency graph
-- Dependabot alerts
-- Dependabot security updates
-- Dependabot malware alerts, where GitHub exposes them for the repository
-- Code scanning
-- Secret scanning
-- Secret scanning push protection
-
-Agents should follow `AGENTS.md` for the exact `gh` checklist after creating a
-repository from this template.
+configuration. After creating a repository from this template, follow
+`AGENTS.md` and `BEST_PRACTICES.md` to enable repository security settings that
+GitHub does not reliably copy from templates.
 
 ## License
 
