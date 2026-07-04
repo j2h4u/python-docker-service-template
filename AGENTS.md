@@ -8,8 +8,10 @@ make a change pass.
   hygiene, supply-chain pin checks, compile, dead-code checks, and packaging
   smoke must pass.
 - Ruff complexity and unused-argument rules are blocking. Preview complexity
-  rules that are not covered by Ruff prefixes are checked explicitly.
-- `just crap-check` is a blocking CRAP threshold gate for every function.
+  rules that are not covered by Ruff prefixes are checked explicitly, but
+  Ruff complexity is only an auxiliary lint signal.
+- `just crap-check` is the authoritative radon-backed CRAP threshold gate for
+  every function.
 - `just coverage-check` is a blocking coverage floor.
 - `just unit` must pass for behavior changes.
 - `just runtime-smoke` must pass for Docker runtime changes.

@@ -48,6 +48,15 @@ Local and CI verification must share the same command surface. CI should call
 Do not weaken, skip, or locally suppress gates to make a change pass. If a gate
 is wrong, change the gate deliberately and explain why in the same change.
 
+Treat the radon-backed CRAP calculation as the authoritative complexity model.
+Ruff complexity rules are still blocking because they are cheap and catch some
+bad shapes early, but they are not the source of truth for formulas or quality
+decisions. Ruff's complexity signal is narrower; it can miss complexity from
+boolean expressions, comprehensions, conditional expressions, and other Python
+constructs that radon counts. When discussing or tuning CRAP, use the
+radon-based complexity value from `just crap-check` / `scripts/crap_gate.py`,
+not Ruff's C901 score.
+
 Prefer absolute gates over baseline ratchets in new repositories. Ratchets are
 useful for paying down inherited debt, but they can also preserve debt while
 spending CI time on bookkeeping. A new project should usually start with a
