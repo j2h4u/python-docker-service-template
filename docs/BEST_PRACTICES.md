@@ -6,15 +6,17 @@ runtime, and repository-operating practices. Keep durable rationale here. Keep
 
 This document is intended to be copied into repositories created from the
 template. Maintainer-only plans for this template repository belong in
-`docs/meta/`.
+`docs/meta/`; start with `docs/meta/ROADMAP.md` for template-repository
+planning.
 
 ## Documentation Model
 
 - `README.md` is the human-facing overview.
 - `AGENTS.md` is the compact agent contract: hard gates, non-negotiable rules,
   and links to deeper runbooks.
-- `docs/template/BEST_PRACTICES.md` is the canonical place for reusable
-  engineering rationale and audit checklists.
+- `docs/README.md` is the documentation map.
+- `docs/BEST_PRACTICES.md` is the canonical place for reusable engineering
+  rationale and audit checklists.
 - `docs/meta/` contains maintainer documentation for this template repository
   itself. It is copied by GitHub templates, but new projects should remove or
   rewrite it.
@@ -150,6 +152,6 @@ are active.
 ## Future Agent Skill
 
 If this repository grows into an agent skill, the skill should treat
-`docs/template/BEST_PRACTICES.md` as its canonical source of project QA policy.
-The skill can route by domain, but it should not duplicate the same policy in
-multiple files.
+`docs/BEST_PRACTICES.md` as its canonical source of project QA policy. The
+maintainer roadmap for that work lives in `docs/meta/ROADMAP.md`. The skill can
+route by domain, but it should not duplicate the same policy in multiple files.
