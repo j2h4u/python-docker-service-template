@@ -5,11 +5,14 @@ make a change pass.
 
 - `just check` is the static gate: Ruff, preview complexity/refactor checks,
   production print guard, lock sync, types, imports, workflow lint, dependency
-  hygiene, compile, dead-code checks, and packaging smoke must pass.
+  hygiene, supply-chain pin checks, compile, dead-code checks, and packaging
+  smoke must pass.
 - Ruff complexity and unused-argument rules are blocking. Preview complexity
   rules that are not covered by Ruff prefixes are checked explicitly.
 - `just crap-check` is a blocking CRAP threshold gate for every function.
+- `just coverage-check` is a blocking coverage floor.
 - `just unit` must pass for behavior changes.
+- `just runtime-smoke` must pass for Docker runtime changes.
 - `just docker-build` must pass because the service runs in Docker; it includes
   Dockerfile and Compose static validation before image build.
 - Use `uv` only. Keep `uv.lock` current and use hardlink mode outside Docker.

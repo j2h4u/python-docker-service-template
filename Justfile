@@ -37,6 +37,10 @@ import-contracts:
 actionlint:
     uv run actionlint
 
+# Guard obvious supply-chain drift in workflows and container image references.
+supply-chain-pins:
+    uv run python scripts/check_supply_chain_pins.py
+
 # Check declared Python dependencies against imports.
 deptry:
     uv run deptry src scripts tests --per-rule-ignores DEP004=radon
@@ -63,15 +67,19 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts actionlint deptry compile dead-code package-smoke
+check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts actionlint supply-chain-pins deptry compile dead-code package-smoke
 
 # Unit tests.
 unit:
-    uv run pytest -q -n auto
+    uv run pytest -q -n auto -m "not integration and not slow"
 
 # Test coverage report.
 coverage:
     uv run pytest --cov=src/template_service --cov-report=term-missing
+
+# Blocking coverage floor.
+coverage-check:
+    uv run pytest -q -n auto --cov=src/template_service --cov-report=term-missing --cov-fail-under=90
 
 # Human CRAP report over the full suite.
 crap:
@@ -97,5 +105,22 @@ docker-build: docker-check
 docker-up:
     docker compose up -d --force-recreate --remove-orphans --wait --wait-timeout 90
 
+# CI-safe runtime smoke: build, start, wait for health, exercise the installed CLI, and clean up.
+runtime-smoke:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    project="python-docker-service-template-smoke"
+    cleanup() {
+        status="$1"
+        if [ "$status" -ne 0 ]; then
+            docker compose -p "$project" ps || true
+            docker compose -p "$project" logs --no-color --timestamps --tail=200 || true
+        fi
+        docker compose -p "$project" down -v --remove-orphans || true
+    }
+    trap 'cleanup "$?"' EXIT
+    docker compose -p "$project" up -d --build --force-recreate --remove-orphans --wait --wait-timeout 90
+    docker compose -p "$project" exec -T python-docker-service-template template-service health
+
 # Full local gate for agents before claiming completion.
-verify: check crap-check unit docker-build
+verify: check crap-check unit coverage-check docker-build runtime-smoke

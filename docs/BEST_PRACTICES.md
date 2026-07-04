@@ -33,11 +33,16 @@ Local and CI verification must share the same command surface. CI should call
 - `just check` is the static gate: formatting, Ruff, preview
   complexity/refactor checks, production print guards, types, import contracts,
   GitHub Actions lint, dependency hygiene, compile checks, dead-code checks,
-  lockfile sync, and packaging smoke.
+  lockfile sync, supply-chain pin checks, and packaging smoke.
 - `just crap-check` is the hard CRAP threshold gate for every function.
+- `just coverage-check` is the broad coverage floor. It complements CRAP:
+  coverage catches overall test erosion, while CRAP catches complex untested
+  functions.
 - `just unit` is the behavior gate.
 - `just docker-build` is the runtime packaging gate and includes Dockerfile and
   Compose validation before the image build.
+- `just runtime-smoke` is the container runtime gate: start the service, wait
+  for health, and exercise a real installed command or protocol.
 - `just verify` is the full local gate before claiming completion.
 
 Do not weaken, skip, or locally suppress gates to make a change pass. If a gate
@@ -54,6 +59,21 @@ of relying only on generic linters. Examples include OpenAPI contract checks,
 schema validation, config validation, import-layer policy, or a small
 repository-specific quality policy. Wire that gate into `just check` or
 `just unit` so local and CI behavior stay identical.
+
+Import-linter should grow with the architecture. A fresh template can start
+with one boundary, but a real project should add contracts for each important
+layer as soon as the layer exists. Do not wait for imports to become tangled
+before documenting the intended direction.
+
+Use pytest markers from the start:
+
+- unmarked tests belong to the fast default unit lane;
+- `integration` marks tests that cross process, service, container, or network
+  boundaries;
+- `slow` marks tests that are too slow for the default unit gate.
+
+Slow and integration tests can move to separate workflows as the project grows,
+but the markers should exist before the suite needs them.
 
 ## Python Environment And Dependencies
 
@@ -108,6 +128,11 @@ If Vulture needs exceptions, prefer an explicit reviewed whitelist file over
 lowering the confidence threshold globally. A whitelist makes false positives
 auditable without weakening dead-code detection everywhere.
 
+Workflow actions and container images must not use floating references. Full
+action versions or SHAs are acceptable; floating refs such as `main`, `master`,
+or major-only tags are not. Container images must use explicit non-floating tags
+or digests, and local Compose images should use clear local tags.
+
 ## Docker Build Context
 
 Docker build context must be whitelist-based. Treat `.dockerignore` as the
@@ -142,12 +167,14 @@ Runtime containers should stay small and boring:
 - define a healthcheck for long-running services;
 - keep default Compose resource limits conservative, such as a memory limit,
   unless the service needs otherwise.
+- avoid fixed `container_name` values in Compose files; they break isolated
+  project names and make CI/runtime smoke checks collide with local services.
 
-Docker image builds are not the same as runtime verification. Once a service
-has a meaningful protocol or health surface, add a runtime smoke gate that
-builds the image, starts the container in a CI-safe Compose project, waits for
-health, and exercises one real interface. Keep this separate from the minimal
-template default until the service has real runtime behavior.
+Docker image builds are not the same as runtime verification. Add a runtime
+smoke gate that builds the image, starts the container in a CI-safe Compose
+project, waits for health, and exercises one real interface. The first smoke can
+be tiny, such as an installed CLI `health` command; replace it with a
+domain-level protocol smoke when the service grows a real interface.
 
 Python packages should also have a packaging smoke gate. Build the wheel,
 install it into an isolated virtual environment, and run the installed

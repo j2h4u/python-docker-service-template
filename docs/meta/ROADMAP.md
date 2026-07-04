@@ -41,6 +41,8 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 - Review whether additional dependency and packaging checks belong in
   `just check`.
 - Keep the CRAP threshold strict and documented.
+- Keep the coverage floor strict enough to catch erosion without replacing
+  per-function CRAP checks.
 - Keep CRAP ratchets out of the default template unless there is inherited debt
   that cannot immediately meet an absolute threshold.
 - Periodically audit Ruff preview rules and basedpyright settings for useful
@@ -48,14 +50,16 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 - Keep examples small enough that the template remains understandable.
 - Evaluate whether packaging smoke should move from static QA into a separate
   package job if it becomes too slow for normal iteration.
+- Add stronger import-linter examples once the template has enough layers to
+  demonstrate them without fake architecture.
 
 ## Docker And Runtime
 
 - Keep Docker build context whitelist-based.
 - Keep the final image minimal, non-root, and healthchecked.
 - Revisit default Compose resource limits as the template gains real-world use.
-- Add a CI-safe runtime smoke recipe once the template has a non-trivial service
-  protocol worth exercising after container startup.
+- Replace the starter runtime smoke with a real protocol-level smoke once the
+  template has a non-trivial service protocol.
 - Add examples only when they clarify the practice without making the template
   look like an application framework.
 
