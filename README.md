@@ -26,8 +26,9 @@ quality gates.
 Docker/Compose validation, and Docker build.
 
 The static gate includes Ruff, preview complexity/refactor checks, production
-print checks, basedpyright, import-linter, actionlint, deptry, compile checks,
-and Vulture over source, scripts, and tests. Pytest runs in strict mode.
+print checks, lockfile sync, basedpyright, import-linter, actionlint, deptry,
+compile checks, Vulture over source, scripts, and tests, and a packaging smoke
+test that builds and installs the wheel. Pytest runs in strict mode.
 
 Run individual gates while iterating:
 

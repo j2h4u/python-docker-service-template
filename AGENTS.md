@@ -4,8 +4,8 @@ This project uses hard gates. Do not weaken, skip, or locally suppress them to
 make a change pass.
 
 - `just check` is the static gate: Ruff, preview complexity/refactor checks,
-  production print guard, types, imports, workflow lint, dependency hygiene,
-  compile, and dead-code checks must pass.
+  production print guard, lock sync, types, imports, workflow lint, dependency
+  hygiene, compile, dead-code checks, and packaging smoke must pass.
 - Ruff complexity and unused-argument rules are blocking. Preview complexity
   rules that are not covered by Ruff prefixes are checked explicitly.
 - `just crap-check` is a blocking CRAP threshold gate for every function.

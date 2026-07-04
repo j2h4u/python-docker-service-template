@@ -41,15 +41,21 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 - Review whether additional dependency and packaging checks belong in
   `just check`.
 - Keep the CRAP threshold strict and documented.
+- Keep CRAP ratchets out of the default template unless there is inherited debt
+  that cannot immediately meet an absolute threshold.
 - Periodically audit Ruff preview rules and basedpyright settings for useful
   new checks.
 - Keep examples small enough that the template remains understandable.
+- Evaluate whether packaging smoke should move from static QA into a separate
+  package job if it becomes too slow for normal iteration.
 
 ## Docker And Runtime
 
 - Keep Docker build context whitelist-based.
 - Keep the final image minimal, non-root, and healthchecked.
 - Revisit default Compose resource limits as the template gains real-world use.
+- Add a CI-safe runtime smoke recipe once the template has a non-trivial service
+  protocol worth exercising after container startup.
 - Add examples only when they clarify the practice without making the template
   look like an application framework.
 
@@ -59,6 +65,10 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 - Recheck whether Dependabot, CodeQL, secret scanning, malware alerts, and
   security updates are copied or reset when creating repositories from the
   template.
+- Verify that dependency submission keeps GitHub's Dependency Graph aligned
+  with `uv.lock` in repositories created from the template.
+- Decide whether OSV-Scanner, Trivy, or both should become default workflows or
+  remain documented options for repositories with stricter vulnerability policy.
 - Keep workflow-based CodeQL and default setup from conflicting.
 - Periodically verify that the public template repo has no stale branches,
   open Dependabot PRs, failing workflows, or unexpected alerts.

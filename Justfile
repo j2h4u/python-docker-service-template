@@ -9,6 +9,10 @@ default:
 compile:
     uv run python -m compileall -q src scripts tests
 
+# Verify uv.lock is synchronized with pyproject.toml.
+lock-check:
+    uv lock --check
+
 # Lint with ruff across the whole repo.
 lint:
     uv run ruff check --preview src scripts tests
@@ -49,13 +53,17 @@ typecheck-tests:
 dead-code:
     uv run vulture
 
+# Build and install the wheel in an isolated environment, then smoke the CLI.
+package-smoke:
+    uv run python scripts/check_packaging_smoke.py
+
 # Auto-fix Ruff findings with safe fixes only, then format.
 fix:
     uv run ruff check --preview --fix src scripts tests
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts actionlint deptry compile dead-code
+check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts actionlint deptry compile dead-code package-smoke
 
 # Unit tests.
 unit:

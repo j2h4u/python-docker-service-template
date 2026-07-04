@@ -32,7 +32,8 @@ Local and CI verification must share the same command surface. CI should call
 
 - `just check` is the static gate: formatting, Ruff, preview
   complexity/refactor checks, production print guards, types, import contracts,
-  GitHub Actions lint, dependency hygiene, compile checks, and dead-code checks.
+  GitHub Actions lint, dependency hygiene, compile checks, dead-code checks,
+  lockfile sync, and packaging smoke.
 - `just crap-check` is the hard CRAP threshold gate for every function.
 - `just unit` is the behavior gate.
 - `just docker-build` is the runtime packaging gate and includes Dockerfile and
@@ -41,6 +42,18 @@ Local and CI verification must share the same command surface. CI should call
 
 Do not weaken, skip, or locally suppress gates to make a change pass. If a gate
 is wrong, change the gate deliberately and explain why in the same change.
+
+Prefer absolute gates over baseline ratchets in new repositories. Ratchets are
+useful for paying down inherited debt, but they can also preserve debt while
+spending CI time on bookkeeping. A new project should usually start with a
+fixed rule, such as a per-function CRAP threshold, and add a ratchet only when
+there is real legacy debt to manage.
+
+When the project has domain contracts, add one semantic invariant gate instead
+of relying only on generic linters. Examples include OpenAPI contract checks,
+schema validation, config validation, import-layer policy, or a small
+repository-specific quality policy. Wire that gate into `just check` or
+`just unit` so local and CI behavior stay identical.
 
 ## Python Environment And Dependencies
 
@@ -69,6 +82,31 @@ UV_LINK_MODE=hardlink uv sync --locked
 
 Inside Docker, use copy mode for the project environment. Container layers and
 host cache mounts do not need the same hardlink behavior as local development.
+
+`uv.lock` must be checked explicitly:
+
+```bash
+uv lock --check
+```
+
+This catches stale lockfiles before Docker or CI fails later in the workflow.
+On pull requests, remember that CI often checks the merged PR state; a
+lockfile can be locally consistent on a branch and still stale after merging
+with current `main`.
+
+For GitHub repositories, submit `uv.lock` to the Dependency Graph with a
+dedicated dependency-submission workflow. Dependency review catches PR deltas,
+but dependency submission keeps GitHub's repository-level dependency graph
+aligned with the lockfile.
+
+Consider a scheduled lockfile vulnerability scan, such as OSV-Scanner, for
+projects with long-lived pinned dependencies. Decide separately whether it is
+blocking; detection-only scans can be useful when fixes require deliberate
+coordination.
+
+If Vulture needs exceptions, prefer an explicit reviewed whitelist file over
+lowering the confidence threshold globally. A whitelist makes false positives
+auditable without weakening dead-code detection everywhere.
 
 ## Docker Build Context
 
@@ -105,6 +143,17 @@ Runtime containers should stay small and boring:
 - keep default Compose resource limits conservative, such as a memory limit,
   unless the service needs otherwise.
 
+Docker image builds are not the same as runtime verification. Once a service
+has a meaningful protocol or health surface, add a runtime smoke gate that
+builds the image, starts the container in a CI-safe Compose project, waits for
+health, and exercises one real interface. Keep this separate from the minimal
+template default until the service has real runtime behavior.
+
+Python packages should also have a packaging smoke gate. Build the wheel,
+install it into an isolated virtual environment, and run the installed
+entrypoint. This catches missing package data, broken script entrypoints, and
+wheel/install issues that source-tree tests can miss.
+
 ## GitHub Template Security Setup
 
 GitHub template creation copies repository files, including workflows and
@@ -135,6 +184,7 @@ gh api -X PATCH "repos/$REPO/code-scanning/default-setup" \
 
 gh workflow run ci.yml --ref main
 gh workflow run codeql.yml --ref main
+gh workflow run dependency-submission.yml --ref main
 
 gh api "repos/$REPO/dependabot/alerts?state=open&per_page=100" --jq length
 gh api "repos/$REPO/code-scanning/alerts?state=open&per_page=100" --jq length
