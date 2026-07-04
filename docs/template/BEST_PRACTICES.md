@@ -4,13 +4,20 @@ This repository is both a project template and a store of preferred QA,
 runtime, and repository-operating practices. Keep durable rationale here. Keep
 `AGENTS.md` short and operational.
 
+This document is intended to be copied into repositories created from the
+template. Maintainer-only plans for this template repository belong in
+`docs/meta/`.
+
 ## Documentation Model
 
 - `README.md` is the human-facing overview.
 - `AGENTS.md` is the compact agent contract: hard gates, non-negotiable rules,
   and links to deeper runbooks.
-- `BEST_PRACTICES.md` is the canonical place for reusable engineering
-  rationale and audit checklists.
+- `docs/template/BEST_PRACTICES.md` is the canonical place for reusable
+  engineering rationale and audit checklists.
+- `docs/meta/` contains maintainer documentation for this template repository
+  itself. It is copied by GitHub templates, but new projects should remove or
+  rewrite it.
 
 When a practice becomes stable enough to reuse across projects, document it here
 by domain. If it needs exact commands for agents, include the commands here and
@@ -143,5 +150,6 @@ are active.
 ## Future Agent Skill
 
 If this repository grows into an agent skill, the skill should treat
-`BEST_PRACTICES.md` as its canonical source of project QA policy. The skill can
-route by domain, but it should not duplicate the same policy in multiple files.
+`docs/template/BEST_PRACTICES.md` as its canonical source of project QA policy.
+The skill can route by domain, but it should not duplicate the same policy in
+multiple files.

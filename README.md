@@ -17,6 +17,8 @@ quality gates.
 2. Run `uv lock`.
 3. Run `just verify`.
 4. Keep `AGENTS.md` intact unless the gate policy changes deliberately.
+5. Remove or rewrite `docs/meta/`; it describes this template repository, not
+   the new project.
 
 ## Gates
 
@@ -40,8 +42,14 @@ just docker-build
 ## Best Practices
 
 This repository also stores reusable QA and runtime practices. See
-`BEST_PRACTICES.md` for the canonical guidance on Python gates, Docker build
-context, virtual environment handling, and post-template GitHub security setup.
+`docs/template/BEST_PRACTICES.md` for the canonical guidance on Python gates,
+Docker build context, virtual environment handling, and post-template GitHub
+security setup.
+
+See `docs/README.md` for the documentation map. Template-maintainer planning
+lives in `docs/meta/`. Those documents are copied by GitHub templates, but they
+describe this repository itself and should be removed or rewritten in
+repositories created from the template.
 
 ## Docker
 
@@ -61,8 +69,8 @@ Compose service defaults to a 1 GiB memory limit.
 
 The repository includes CI, CodeQL, dependency review, and Dependabot
 configuration. After creating a repository from this template, follow
-`AGENTS.md` and `BEST_PRACTICES.md` to enable repository security settings that
-GitHub does not reliably copy from templates.
+`AGENTS.md` and `docs/template/BEST_PRACTICES.md` to enable repository security
+settings that GitHub does not reliably copy from templates.
 
 ## License
 
