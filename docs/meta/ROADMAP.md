@@ -4,7 +4,8 @@ This roadmap is for `j2h4u/python-docker-service-template` itself. GitHub
 templates copy this file into new repositories, but it is maintainer metadata,
 not a project-starting artifact. After creating a repository from this template,
 delete `docs/meta/` or replace it with the new project's own planning docs. See
-`docs/README.md` for the documentation map.
+`README.md` for the template consumer checklist and `docs/BEST_PRACTICES.md`
+for reusable QA policy.
 
 ## Documentation Model
 
@@ -12,8 +13,7 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 - Keep `AGENTS.md` as the compact operational contract for agents.
 - Keep reusable engineering guidance in `docs/BEST_PRACTICES.md`.
 - Keep template-maintainer plans, decisions, and audits in `docs/meta/`.
-- Add a short generated-template cleanup checklist if this distinction proves
-  easy to miss in real projects.
+- Keep the generated-template cleanup checklist in `README.md`.
 
 ## Agent Skill
 

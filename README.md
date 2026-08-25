@@ -15,9 +15,12 @@ quality gates.
 1. Rename `python-docker-service-template`, `template_service`, and
    `template-service` to the product names.
 2. Run `uv lock`.
-3. Run `just verify`.
-4. Keep `AGENTS.md` intact unless the gate policy changes deliberately.
-5. Remove or rewrite `docs/meta/`; it describes this template repository, not
+3. Review `tach.toml` and import-linter contracts after the first real modules
+   appear.
+4. Run `just verify`.
+5. Follow the GitHub security setup checklist in `docs/BEST_PRACTICES.md`.
+6. Keep `AGENTS.md` intact unless the gate policy changes deliberately.
+7. Remove or rewrite `docs/meta/`; it describes this template repository, not
    the new project.
 
 ## Gates
@@ -38,6 +41,7 @@ Run individual gates while iterating:
 ```bash
 just check
 just crap-check
+just coverage
 just unit
 just deps-audit
 just docker-check
@@ -45,17 +49,14 @@ just docker-build
 just runtime-smoke
 ```
 
-## Best Practices
+## Documentation
 
-This repository also stores reusable QA and runtime practices. See
-`docs/BEST_PRACTICES.md` for the canonical guidance on Python gates, Docker
-build context, virtual environment handling, and post-template GitHub security
-setup.
-
-See `docs/README.md` for the documentation map. Template-maintainer planning
-lives in `docs/meta/`, including `docs/meta/ROADMAP.md`. Those documents are
-copied by GitHub templates, but they describe this repository itself and should
-be removed or rewritten in repositories created from the template.
+- [Best Practices](docs/BEST_PRACTICES.md): reusable QA, runtime, dependency,
+  Docker, and GitHub security practices for repositories created from this
+  template.
+- [Template Roadmap](docs/meta/ROADMAP.md): maintainer roadmap for this
+  template repository itself. Delete or rewrite `docs/meta/` in generated
+  projects.
 
 ## Docker
 

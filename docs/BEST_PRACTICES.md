@@ -14,7 +14,6 @@ planning.
 - `README.md` is the human-facing overview.
 - `AGENTS.md` is the compact agent contract: hard gates, non-negotiable rules,
   and links to deeper runbooks.
-- `docs/README.md` is the documentation map.
 - `docs/BEST_PRACTICES.md` is the canonical place for reusable engineering
   rationale and audit checklists.
 - `docs/meta/` contains maintainer documentation for this template repository
