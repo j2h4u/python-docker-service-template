@@ -22,22 +22,24 @@ quality gates.
 
 ## Gates
 
-`just verify` is the local contract: static checks, CRAP threshold, coverage
-floor, unit tests, Docker/Compose validation, Docker build, and runtime smoke.
+`just verify` is the local contract: static checks, CRAP threshold, unit tests,
+locked dependency vulnerability audit, Docker/Compose validation, Docker build,
+and runtime smoke.
 
 The static gate includes Ruff, preview complexity/refactor checks, production
-print checks, lockfile sync, basedpyright, import-linter, actionlint, deptry,
-compile checks, supply-chain pin checks, Vulture over source, scripts, and
-tests, and a packaging smoke test that builds and installs the wheel. Pytest
-runs in strict mode.
+print checks, lockfile sync, basedpyright, import-linter, Tach module
+boundaries, actionlint, deptry, suppression-budget checks, compile checks,
+supply-chain pin checks, Vulture over source, scripts, and tests, and a
+packaging smoke test that builds and installs the wheel. Pytest runs in strict
+mode.
 
 Run individual gates while iterating:
 
 ```bash
 just check
 just crap-check
-just coverage-check
 just unit
+just deps-audit
 just docker-check
 just docker-build
 just runtime-smoke

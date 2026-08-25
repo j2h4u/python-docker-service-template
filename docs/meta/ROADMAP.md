@@ -38,20 +38,22 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
 ## QA Gates
 
 - Keep local and CI gates aligned through `just` recipes.
-- Review whether additional dependency and packaging checks belong in
-  `just check`.
+- Keep Tach module-boundary checks and import-linter semantic contracts aligned
+  without duplicating their responsibilities.
+- Keep locked dependency vulnerability audits in the release gate and scheduled
+  OSV scanning as repository security telemetry.
 - Keep the CRAP threshold strict and documented.
-- Keep the coverage floor strict enough to catch erosion without replacing
-  per-function CRAP checks.
-- Keep CRAP ratchets out of the default template unless there is inherited debt
-  that cannot immediately meet an absolute threshold.
+- Keep coverage as CRAP input rather than a standalone coverage floor.
+- Keep CRAP ratchets out of the default template; document them for brownfield
+  maintenance where inherited debt cannot immediately meet an absolute
+  threshold.
 - Periodically audit Ruff preview rules and basedpyright settings for useful
   new checks.
 - Keep examples small enough that the template remains understandable.
 - Evaluate whether packaging smoke should move from static QA into a separate
   package job if it becomes too slow for normal iteration.
-- Add stronger import-linter examples once the template has enough layers to
-  demonstrate them without fake architecture.
+- Add stronger Tach `visibility` / `interfaces` examples once the template has
+  enough real layers to demonstrate them without fake architecture.
 
 ## Docker And Runtime
 
@@ -71,8 +73,9 @@ delete `docs/meta/` or replace it with the new project's own planning docs. See
   template.
 - Verify that dependency submission keeps GitHub's Dependency Graph aligned
   with `uv.lock` in repositories created from the template.
-- Decide whether OSV-Scanner, Trivy, or both should become default workflows or
-  remain documented options for repositories with stricter vulnerability policy.
+- Keep OSV-Scanner as the default scheduled lockfile scan; consider Trivy only
+  for repositories that need broader container or filesystem vulnerability
+  policy.
 - Keep workflow-based CodeQL and default setup from conflicting.
 - Periodically verify that the public template repo has no stale branches,
   open Dependabot PRs, failing workflows, or unexpected alerts.

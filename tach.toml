@@ -1,0 +1,27 @@
+# Module boundaries, enforced by tach (https://github.com/tach-org/tach).
+#
+# Tach complements import-linter: import-linter is good for named architectural
+# contracts, while Tach keeps the full module graph explicit. `exact = true`
+# makes stale declared dependencies fail after code stops importing them.
+
+source_roots = ["src"]
+root_module = "forbid"
+exact = true
+layers_explicit_depends_on = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+
+layers = [
+    "delivery",
+    "domain",
+]
+
+[[modules]]
+path = "template_service.cli"
+layer = "delivery"
+depends_on = ["template_service.core"]
+
+[[modules]]
+path = "template_service.core"
+layer = "domain"
+depends_on = []

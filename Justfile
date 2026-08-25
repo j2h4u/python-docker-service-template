@@ -33,6 +33,10 @@ fmt-check:
 import-contracts:
     uv run lint-imports
 
+# Check the exact module dependency graph.
+module-boundaries:
+    uv run tach check
+
 # Validate GitHub Actions workflow syntax and expressions.
 actionlint:
     uv run actionlint
@@ -40,6 +44,19 @@ actionlint:
 # Guard obvious supply-chain drift in workflows and container image references.
 supply-chain-pins:
     uv run python scripts/check_supply_chain_pins.py
+
+# Keep local suppressions explicit and budgeted.
+suppression-budget:
+    uv run python scripts/check_suppression_budget.py
+
+# Audit the locked dependency set for known vulnerabilities.
+deps-audit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    uv export --locked --all-groups --no-emit-project --no-emit-workspace --no-emit-local --no-header --no-annotate --no-editable > "$tmp"
+    uv run pip-audit -r "$tmp" --strict --no-deps
 
 # Check declared Python dependencies against imports.
 deptry:
@@ -67,7 +84,7 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts actionlint supply-chain-pins deptry compile dead-code package-smoke
+check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code package-smoke
 
 # Unit tests.
 unit:
@@ -76,10 +93,6 @@ unit:
 # Test coverage report.
 coverage:
     uv run pytest --cov=src/template_service --cov-report=term-missing
-
-# Blocking coverage floor.
-coverage-check:
-    uv run pytest -q -n auto --cov=src/template_service --cov-report=term-missing --cov-fail-under=90
 
 # Human CRAP report over the full suite.
 crap:
@@ -123,4 +136,4 @@ runtime-smoke:
     docker compose -p "$project" exec -T python-docker-service-template template-service health
 
 # Full local gate for agents before claiming completion.
-verify: check crap-check unit coverage-check docker-build runtime-smoke
+verify: check crap-check unit deps-audit docker-build runtime-smoke

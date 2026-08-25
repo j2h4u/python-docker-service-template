@@ -32,13 +32,13 @@ Local and CI verification must share the same command surface. CI should call
 
 - `just check` is the static gate: formatting, Ruff, preview
   complexity/refactor checks, production print guards, types, import contracts,
-  GitHub Actions lint, dependency hygiene, compile checks, dead-code checks,
-  lockfile sync, supply-chain pin checks, and packaging smoke.
+  Tach module boundaries, GitHub Actions lint, dependency hygiene, suppression
+  budgets, compile checks, dead-code checks, lockfile sync, supply-chain pin
+  checks, and packaging smoke.
 - `just crap-check` is the hard CRAP threshold gate for every function.
-- `just coverage-check` is the broad coverage floor. It complements CRAP:
-  coverage catches overall test erosion, while CRAP catches complex untested
-  functions.
+- Coverage is measured as CRAP input, not as a standalone blocking floor.
 - `just unit` is the behavior gate.
+- `just deps-audit` is the locked dependency vulnerability gate.
 - `just docker-build` is the runtime packaging gate and includes Dockerfile and
   Compose validation before the image build.
 - `just runtime-smoke` is the container runtime gate: start the service, wait
@@ -61,7 +61,16 @@ Prefer absolute gates over baseline ratchets in new repositories. Ratchets are
 useful for paying down inherited debt, but they can also preserve debt while
 spending CI time on bookkeeping. A new project should usually start with a
 fixed rule, such as a per-function CRAP threshold, and add a ratchet only when
-there is real legacy debt to manage.
+there is real legacy debt to manage. When this repository is used to bring a
+brownfield project under control, CRAP ratchets are appropriate: freeze the
+current debt, require new changes to improve or hold the line, then replace the
+ratchet with absolute thresholds as the codebase gets clean.
+
+Keep suppression budgets explicit and small. The default template budget is
+zero for `noqa`, `type: ignore`, `pyright: ignore`, `pylint: disable`, and
+file-level Ruff suppression because suppressions are policy exceptions, not
+normal development tools. If a mature project needs exceptions, raise the
+budget deliberately and explain the reason in the same change.
 
 When the project has domain contracts, add one semantic invariant gate instead
 of relying only on generic linters. Examples include OpenAPI contract checks,
@@ -69,10 +78,20 @@ schema validation, config validation, import-layer policy, or a small
 repository-specific quality policy. Wire that gate into `just check` or
 `just unit` so local and CI behavior stay identical.
 
-Import-linter should grow with the architecture. A fresh template can start
-with one boundary, but a real project should add contracts for each important
-layer as soon as the layer exists. Do not wait for imports to become tangled
-before documenting the intended direction.
+Use import-linter and Tach together. Import-linter is best for named semantic
+contracts such as "core must not import CLI" or "persistence must not know the
+transport." Tach is stricter in a different dimension: it describes the whole
+module dependency graph, can require every edge to be explicit, can forbid
+cycles, can treat `TYPE_CHECKING` imports as real coupling, and with
+`exact = true` fails when a declared dependency is no longer used. That makes
+the architecture file both a gate and a living map, not a loose set of examples.
+
+A fresh project should keep `tach.toml` small but real: define the current
+layers, set `root_module = "forbid"`, keep `layers_explicit_depends_on = true`,
+and declare actual module edges as soon as modules appear. In a mature project,
+add `visibility`, `cannot_depend_on`, and `[[interfaces]]` rules for public
+facades and reviewed ownership boundaries. Do not use deprecated edges as a
+default; reserve them for named brownfield cleanup work with a removal plan.
 
 Use pytest markers from the start:
 
@@ -128,10 +147,17 @@ dedicated dependency-submission workflow. Dependency review catches PR deltas,
 but dependency submission keeps GitHub's repository-level dependency graph
 aligned with the lockfile.
 
-Consider a scheduled lockfile vulnerability scan, such as OSV-Scanner, for
-projects with long-lived pinned dependencies. Decide separately whether it is
-blocking; detection-only scans can be useful when fixes require deliberate
-coordination.
+Run a locked dependency vulnerability audit from local and CI gates:
+
+```bash
+just deps-audit
+```
+
+This audits the resolved lockfile instead of a hand-written requirements view.
+Keep scheduled lockfile vulnerability scans, such as OSV-Scanner, as a second
+signal for long-lived pinned dependencies. Scheduled scans can be detection-only
+when fixes require deliberate coordination, while `just deps-audit` remains the
+developer-facing gate.
 
 If Vulture needs exceptions, prefer an explicit reviewed whitelist file over
 lowering the confidence threshold globally. A whitelist makes false positives
@@ -141,6 +167,12 @@ Workflow actions and container images must not use floating references. Full
 action versions or SHAs are acceptable; floating refs such as `main`, `master`,
 or major-only tags are not. Container images must use explicit non-floating tags
 or digests, and local Compose images should use clear local tags.
+
+CI should classify documentation-only changes explicitly instead of hiding them
+behind workflow-level `paths-ignore`. A small change classifier keeps the final
+aggregate job visible on every PR/push while skipping expensive code gates only
+when the changed files are genuinely documentation or template-maintainer
+metadata.
 
 ## Docker Build Context
 

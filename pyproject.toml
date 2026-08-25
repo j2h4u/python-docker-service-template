@@ -133,17 +133,29 @@ type = "forbidden"
 source_modules = ["template_service.core"]
 forbidden_modules = ["template_service.cli"]
 
+[tool.template_service.suppressions]
+paths = ["src", "scripts", "tests", "pyproject.toml", "Justfile", ".github/workflows"]
+
+[tool.template_service.suppressions.baseline]
+noqa = 0
+type_ignore = 0
+pyright = 0
+pylint = 0
+ruff = 0
+
 [dependency-groups]
 dev = [
     "actionlint-py>=1.7.12.24",
     "basedpyright>=1.39.8",
     "deptry>=0.25.1",
     "import-linter>=2.12",
+    "pip-audit>=2.10.1",
     "pytest>=9.1.1",
     "pytest-cov>=7",
     "pytest-crap>=0.3.0",
     "pytest-xdist>=3.8.0",
     "radon>=6.0.1",
     "ruff>=0.15.18",
+    "tach>=0.35.0",
     "vulture>=2.16",
 ]

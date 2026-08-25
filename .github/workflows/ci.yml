@@ -3,9 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - ".planning/**"
-      - "**/*.md"
   pull_request:
     branches: [main]
   schedule:
@@ -23,7 +20,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - id: classify
+        name: Classify changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+            if [[ "$base" =~ ^0+$ ]]; then
+              echo "code=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          git diff --name-only "$base" "$head" > changed-files.txt
+          if [ ! -s changed-files.txt ]; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if grep -Ev '^(\.planning/|docs/.*|README\.md$|AGENTS\.md$|LICENSE$|.*\.md$)' changed-files.txt >/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   quality:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -48,6 +90,8 @@ jobs:
         run: just check
 
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -72,6 +116,8 @@ jobs:
         run: just unit
 
   crap:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -95,7 +141,9 @@ jobs:
       - name: CRAP gate
         run: just crap-check
 
-  coverage:
+  deps-audit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -116,10 +164,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Coverage floor
-        run: just coverage-check
+      - name: Locked dependency vulnerability audit
+        run: just deps-audit
 
   docker-build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -136,6 +186,8 @@ jobs:
           tags: python-docker-service-template:ci
 
   runtime-smoke:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -151,11 +203,15 @@ jobs:
   ci:
     if: always()
     runs-on: ubuntu-latest
-    needs: [quality, test, crap, coverage, docker-build, runtime-smoke]
+    needs: [changes, quality, test, crap, deps-audit, docker-build, runtime-smoke]
     steps:
       - name: Check required jobs
         run: |
           if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] || \
              [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            exit 1
+          fi
+          if [ "${{ needs.changes.outputs.code }}" = "true" ] && \
+             [ "${{ contains(needs.*.result, 'skipped') }}" = "true" ]; then
             exit 1
           fi
