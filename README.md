@@ -12,23 +12,28 @@ quality gates.
 
 ## After Creating A Repo From This Template
 
-1. Rename `python-docker-service-template`, `template_service`, and
-   `template-service` to the product names. Update the package name in
-   `release-please-config.json` at the same time.
-2. Run `uv lock`.
-3. Review `tach.toml` and import-linter contracts after the first real modules
-   appear.
-4. Run `just verify`.
-5. Follow the GitHub security setup checklist in `docs/BEST_PRACTICES.md`.
-6. Keep `AGENTS.md` intact unless the gate policy changes deliberately.
-7. Remove or rewrite `docs/meta/`; it describes this template repository, not
-   the new project.
+Agents should complete and update this checklist before the first real
+implementation commit. Keep checked items checked in the generated repository
+so later agents can see what was already adapted.
 
-For projects that do not run in Docker, keep the Python QA and release gates
-but remove the Docker layer deliberately: `Dockerfile`, `docker-compose.yml`,
-`.dockerignore`, `docker-check`, `docker-build`, `docker-up`, `runtime-smoke`,
-and the Docker jobs in CI. Do not add container registry publishing unless the
-project actually ships a container.
+- [ ] Rename `python-docker-service-template`, `template_service`, and
+  `template-service` to the product names.
+- [ ] Update `release-please-config.json`, `pyproject.toml`, Docker image
+  names, Compose service names, workflow names, and visible README text.
+- [ ] Search for leftover template names:
+  `rg "python-docker-service-template|template_service|template-service|Python Docker Service Template"`.
+- [ ] Decide whether the project ships in Docker.
+- [ ] If it does not use Docker, remove `Dockerfile`, `docker-compose.yml`,
+  `.dockerignore`, Docker Just recipes, Docker CI jobs, and runtime smoke
+  requirements. Keep Python QA, dependency, security, and release gates.
+- [ ] Delete or rewrite `docs/meta/`; it describes this template repository,
+  not the generated project.
+- [ ] Review `tach.toml` and import-linter contracts after the first real
+  modules appear.
+- [ ] Run `uv lock`, then `just verify`.
+- [ ] Follow the GitHub security setup checklist in
+  [Best Practices](docs/BEST_PRACTICES.md).
+- [ ] Keep `AGENTS.md` intact unless the gate policy changes deliberately.
 
 ## Gates
 
