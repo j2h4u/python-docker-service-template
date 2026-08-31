@@ -77,6 +77,12 @@ schema validation, config validation, import-layer policy, or a small
 repository-specific quality policy. Wire that gate into `just check` or
 `just unit` so local and CI behavior stay identical.
 
+As the project gains real behavior, add narrow project-specific boundary checks
+instead of broad heuristic lint. Good examples are import-boundary scripts,
+configuration schema validators, generated-artifact provenance checks, source
+span budgets, and installer/unit-file validation. Keep these checks small,
+deterministic, and wired through `just check`.
+
 Use import-linter and Tach together. Import-linter is best for named semantic
 contracts such as "core must not import CLI" or "persistence must not know the
 transport." Tach is stricter in a different dimension: it describes the whole
@@ -101,6 +107,11 @@ Use pytest markers from the start:
 
 Slow and integration tests can move to separate workflows as the project grows,
 but the markers should exist before the suite needs them.
+
+When slow tests become expensive enough to hide signal in the fast PR lane, move
+them to an explicit scheduled or manual slow workflow. Keep the fast `unit`,
+`check`, and `crap-check` gates blocking on ordinary PRs; use the slow lane for
+backend matrices, statistical tests, live integrations, and soak checks.
 
 ## Python Environment And Dependencies
 
@@ -167,6 +178,17 @@ action versions or SHAs are acceptable; floating refs such as `main`, `master`,
 or major-only tags are not. Container images must use explicit non-floating tags
 or digests, and local Compose images should use clear local tags.
 
+Disable persisted checkout credentials by default:
+
+```yaml
+- uses: actions/checkout@v7.0.1
+  with:
+    persist-credentials: false
+```
+
+Enable credentials only for jobs that intentionally push, tag, or update
+repository content.
+
 CI should classify documentation-only changes explicitly instead of hiding them
 behind workflow-level `paths-ignore`. A small change classifier keeps the final
 aggregate job visible on every PR/push while skipping expensive code gates only
@@ -221,6 +243,17 @@ project, waits for health, and exercises one real interface. The first smoke can
 be tiny, such as an installed CLI `health` command; replace it with a
 domain-level protocol smoke when the service grows a real interface.
 
+For protocol services, runtime smoke should exercise the protocol surface, not
+only process liveness. For example, list MCP tools over the real transport, call
+a harmless read-only endpoint, or run a redacted stdio smoke. Allocate temporary
+ports and isolated runtime directories in CI so the smoke cannot collide with a
+developer service or persistent data.
+
+For non-Docker services, replace Docker runtime smoke with the equivalent
+deployment smoke. Examples include `systemd-analyze verify` against a synthetic
+root for unit files, an installer dry-run, a one-shot CLI health command, or a
+read-only protocol check against a temporary runtime directory.
+
 Python packages should also have a packaging smoke gate. Build the wheel,
 install it into an isolated virtual environment, and run the installed
 entrypoint. This catches missing package data, broken script entrypoints, and
@@ -250,6 +283,12 @@ Release automation is not the same as publishing a container. Keep release-pleas
 as the default release layer for both Docker and non-Docker projects. Add GHCR
 publishing, image scanning, SBOM generation, provenance attestations, and
 runtime release contracts only for projects that actually ship containers.
+
+For resource-heavy repositories or multi-agent workloads, add explicit resource
+containment as a maturity-stage practice: per-worktree locks, bounded temporary
+directories, cgroup or systemd transient-unit limits, and fail-closed checks that
+the effective limits are actually applied. Do not make heavyweight containment a
+starter-template default unless the project already needs it.
 
 ## GitHub Template Security Setup
 
