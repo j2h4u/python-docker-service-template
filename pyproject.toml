@@ -21,7 +21,7 @@ packages = ["src/template_service"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 tmp_path_retention_policy = "failed"
 tmp_path_retention_count = 1
 addopts = [
@@ -113,6 +113,10 @@ ignore_decorators = [
     "@app.callback",
     "@app.command",
 ]
+
+[tool.deptry]
+known_first_party = ["template_service", "scripts"]
+per_rule_ignores = { DEP004 = ["radon"] }
 
 [tool.coverage.run]
 source = ["src/template_service"]

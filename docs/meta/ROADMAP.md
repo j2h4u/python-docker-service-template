@@ -19,7 +19,7 @@ for reusable QA policy.
 
 - Design an agent skill that can consume this repository as a QA policy source.
 - Route the skill by domain: Python gates, Docker context, GitHub security,
-  dependency hygiene, and repository documentation.
+  dependency hygiene, releases, and repository documentation.
 - Make the skill audit-oriented: it should compare a target repository against
   the template's practices and report concrete gaps.
 - Avoid duplicating policy text inside the skill. The skill should link back to
@@ -32,6 +32,8 @@ for reusable QA policy.
   `template_service`, and `template-service`.
 - Document which files are meant to survive in generated projects and which
   files are template-maintainer metadata.
+- Keep one template repository, but make opt-out layers explicit for projects
+  that do not use Docker.
 - Validate whether GitHub template creation has any useful hooks or limitations
   that affect cleanup guidance.
 
@@ -79,6 +81,15 @@ for reusable QA policy.
 - Keep workflow-based CodeQL and default setup from conflicting.
 - Periodically verify that the public template repo has no stale branches,
   open Dependabot PRs, failing workflows, or unexpected alerts.
+
+## Releases
+
+- Keep release-please as the default release automation for both Docker and
+  non-Docker projects.
+- Keep PR title, commit subject, and release-note override checks aligned with
+  release-please behavior.
+- Decide separately whether to add an opt-in GHCR publish workflow with image
+  scan, SBOM, provenance attestations, and a container runtime release contract.
 
 ## Licensing
 

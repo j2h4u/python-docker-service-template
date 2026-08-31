@@ -179,6 +179,11 @@ Docker build context must be whitelist-based. Treat `.dockerignore` as the
 container equivalent of a strict allowlist, not as a growing blacklist of local
 artifacts.
 
+Docker is a default layer in this template, not a requirement for every project
+created from it. For non-Docker services, remove the Docker files, Just recipes,
+and CI jobs in one deliberate template adaptation, while keeping the Python QA,
+dependency, security, and release gates.
+
 Preferred pattern:
 
 ```dockerignore
@@ -220,6 +225,31 @@ Python packages should also have a packaging smoke gate. Build the wheel,
 install it into an isolated virtual environment, and run the installed
 entrypoint. This catches missing package data, broken script entrypoints, and
 wheel/install issues that source-tree tests can miss.
+
+## Releases
+
+Use release-please for changelog and GitHub Release automation. PR titles and
+squash commit subjects must be releasable Conventional Commits because they are
+the primary release input. Keep `release-please-config.json`,
+`.release-please-manifest.json`, and `CHANGELOG.md` together; release-please
+owns changelog headings, dates, comparison links, and release PR updates.
+
+Validate release input before CI has to reject it:
+
+```bash
+just release-check
+```
+
+The release-note override is a `BEGIN_COMMIT_OVERRIDE` /
+`END_COMMIT_OVERRIDE` block in the PR body. Use it when a broad or multi-commit
+change would otherwise squash into one misleading changelog line. Entries in
+the override block should be Conventional Commit messages separated by blank
+lines.
+
+Release automation is not the same as publishing a container. Keep release-please
+as the default release layer for both Docker and non-Docker projects. Add GHCR
+publishing, image scanning, SBOM generation, provenance attestations, and
+runtime release contracts only for projects that actually ship containers.
 
 ## GitHub Template Security Setup
 
