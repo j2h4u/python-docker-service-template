@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.1...v0.2.2) (2026-09-01)
+
+
+### Documentation
+
+* clarify coverage is diagnostic ([3503b02](https://github.com/j2h4u/python-docker-service-template/commit/3503b022edc2de6c47280e62e95e7358228efd77))
+
 ## [0.2.1](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.0...v0.2.1) (2026-08-31)
 
 
