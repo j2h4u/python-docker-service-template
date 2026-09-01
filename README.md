@@ -53,7 +53,6 @@ Run individual gates while iterating:
 ```bash
 just check
 just crap-check
-just coverage
 just unit
 just deps-audit
 just docker-check
@@ -61,6 +60,9 @@ just docker-build
 just runtime-smoke
 just release-check
 ```
+
+`just coverage` is a non-blocking diagnostic report. Coverage is a CRAP input,
+not a standalone quality floor.
 
 ## Documentation
 

@@ -90,7 +90,7 @@ check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck ty
 unit:
     uv run pytest -q -n auto -m "not integration and not slow"
 
-# Test coverage report.
+# Non-blocking diagnostic coverage report. CRAP uses coverage as input.
 coverage:
     uv run pytest --cov=src/template_service --cov-report=term-missing
 
