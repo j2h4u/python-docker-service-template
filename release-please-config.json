@@ -6,6 +6,13 @@
       "release-type": "python",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='python-docker-service-template')].version"
+        }
+      ],
       "changelog-sections": [
         {
           "type": "feat",
