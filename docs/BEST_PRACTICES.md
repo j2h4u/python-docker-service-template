@@ -261,11 +261,14 @@ wheel/install issues that source-tree tests can miss.
 
 ## Releases
 
-Use release-please for changelog and GitHub Release automation. PR titles and
-squash commit subjects must be releasable Conventional Commits because they are
-the primary release input. Keep `release-please-config.json`,
-`.release-please-manifest.json`, and `CHANGELOG.md` together; release-please
-owns changelog headings, dates, comparison links, and release PR updates.
+Use release-please for changelog, version bump, and GitHub Release automation.
+PR titles and squash commit subjects must be releasable Conventional Commits
+because they are the primary release input. Python projects should use
+`release-type: python` so release PRs bump `pyproject.toml`, not only
+`CHANGELOG.md` and `.release-please-manifest.json`. Keep
+`release-please-config.json`, `.release-please-manifest.json`, `pyproject.toml`,
+`uv.lock`, and `CHANGELOG.md` together; release-please owns changelog headings,
+dates, comparison links, and release PR updates.
 
 Validate release input before CI has to reject it:
 

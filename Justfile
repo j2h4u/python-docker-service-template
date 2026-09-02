@@ -144,14 +144,15 @@ release-check title="" body="":
     set -euo pipefail
     base="$(git merge-base origin/main HEAD)"
     count="$(git rev-list --no-merges --count "${base}..HEAD")"
-    title="{{title}}"
+    title='{{title}}'
     if [ -z "${title}" ]; then
         title="$(git log -1 --format=%s "$(git rev-list "${base}..HEAD" | tail -1)")"
     fi
     uv run python scripts/validate_pr_title.py --title "${title}"
     uv run python -m scripts.validate_pr_commits --base-sha "${base}" --head-sha "$(git rev-parse HEAD)"
-    if [ -n "{{body}}" ]; then
-        uv run python -m scripts.validate_release_notes --body-file "{{body}}" --commit-count "${count}"
+    body='{{body}}'
+    if [ -n "${body}" ]; then
+        uv run python -m scripts.validate_release_notes --body-file "${body}" --commit-count "${count}"
     elif [ "${count}" -gt 1 ]; then
         printf 'note: %s commits will squash into one.\n' "${count}" >&2
         printf 'The PR body needs a BEGIN_COMMIT_OVERRIDE block; re-run with body=<file> to check it.\n' >&2
