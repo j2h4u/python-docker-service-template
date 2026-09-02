@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.2...v0.2.3) (2026-09-02)
+
+
+### Fixes
+
+* **release:** bump python package version ([#16](https://github.com/j2h4u/python-docker-service-template/issues/16)) ([e53a2a7](https://github.com/j2h4u/python-docker-service-template/commit/e53a2a73a3905590e48d466b74cc72556006373f))
+* **release:** update uv lock in release prs ([#18](https://github.com/j2h4u/python-docker-service-template/issues/18)) ([5768e38](https://github.com/j2h4u/python-docker-service-template/commit/5768e3845423497cc3f1042e7bab68b9a702cbe9))
+
 ## [0.2.2](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.1...v0.2.2) (2026-09-01)
 
 
