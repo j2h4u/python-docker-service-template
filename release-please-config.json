@@ -3,7 +3,7 @@
   "packages": {
     ".": {
       "package-name": "python-docker-service-template",
-      "release-type": "simple",
+      "release-type": "python",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
       "changelog-sections": [
