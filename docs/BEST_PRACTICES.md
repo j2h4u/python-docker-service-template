@@ -112,6 +112,9 @@ When slow tests become expensive enough to hide signal in the fast PR lane, move
 them to an explicit scheduled or manual slow workflow. Keep the fast `unit`,
 `check`, and `crap-check` gates blocking on ordinary PRs; use the slow lane for
 backend matrices, statistical tests, live integrations, and soak checks.
+Docs-only changes should not spend CI on runtime-affecting gates. On protected
+branches, keep a lightweight required aggregate check for pull requests so
+docs-only PRs still have an explicit merge signal while heavy jobs are skipped.
 
 ## Python Environment And Dependencies
 
