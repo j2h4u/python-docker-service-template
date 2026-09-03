@@ -56,7 +56,7 @@ deps-audit:
     tmp="$(mktemp)"
     trap 'rm -f "$tmp"' EXIT
     uv export --locked --all-groups --no-emit-project --no-emit-workspace --no-emit-local --no-header --no-annotate --no-editable > "$tmp"
-    uv run pip-audit -r "$tmp" --strict --no-deps
+    uv run pip-audit -r "$tmp" --strict --no-deps --disable-pip
 
 # Check declared Python dependencies against imports.
 deptry:
