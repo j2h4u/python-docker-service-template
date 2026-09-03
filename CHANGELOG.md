@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.3...v0.2.4) (2026-09-03)
+
+
+### CI
+
+* skip docs-only heavy workflows ([#19](https://github.com/j2h4u/python-docker-service-template/issues/19)) ([9f55f01](https://github.com/j2h4u/python-docker-service-template/commit/9f55f0100b3cd93228d52d3b4735b7b1b90a9ee3))
+
 ## [0.2.3](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.2...v0.2.3) (2026-09-02)
 
 

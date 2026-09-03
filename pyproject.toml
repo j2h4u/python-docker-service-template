@@ -1,6 +1,6 @@
 [project]
 name = "python-docker-service-template"
-version = "0.2.3"
+version = "0.2.4"
 description = "Command-line tools for Python Docker Service Template."
 readme = "README.md"
 license = "PolyForm-Noncommercial-1.0.0"
