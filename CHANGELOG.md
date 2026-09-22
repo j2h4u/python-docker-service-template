@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.6...v0.2.7) (2026-09-22)
+
+
+### Fixes
+
+* **ci:** close template gate gaps ([663170d](https://github.com/j2h4u/python-docker-service-template/commit/663170d91e8876148ebe61b735cfbe5990909fa0))
+
 ## [0.2.6](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.5...v0.2.6) (2026-09-22)
 
 
