@@ -37,6 +37,7 @@ class _RadonBlock(Protocol):
 
 class _RadonFunctionBlock(_RadonBlock, Protocol):
     closures: Sequence[_RadonFunctionBlock]
+    is_method: bool
 
 
 class _RadonClassBlock(_RadonBlock, Protocol):
@@ -94,6 +95,8 @@ def _qualname_from_block(block: _RadonBlock, prefix: tuple[str, ...] = ()) -> li
         return _class_member_qualnames(block, prefix)
 
     function_block = cast(_RadonFunctionBlock, block)
+    if not prefix and function_block.is_method:
+        return []
     qualname = ".".join((*prefix, function_block.name))
     items: list[tuple[str, _RadonBlock]] = [(qualname, function_block)]
     for closure in function_block.closures:
@@ -149,8 +152,7 @@ def _source_files(source_root: Path) -> Iterable[Path]:
         yield source_root.resolve()
         return
     for path in sorted(source_root.rglob("*.py")):
-        if path.name != "__init__.py":
-            yield path.resolve()
+        yield path.resolve()
 
 
 def _function_metrics_from_file(
