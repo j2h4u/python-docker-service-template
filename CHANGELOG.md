@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.5...v0.2.6) (2026-09-22)
+
+
+### CI
+
+* reduce scheduled workflow usage ([c0f301f](https://github.com/j2h4u/python-docker-service-template/commit/c0f301f5c1aa8b4112d7704ffe7b5b6c2fa0be44))
+
 ## [0.2.5](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.4...v0.2.5) (2026-09-22)
 
 
