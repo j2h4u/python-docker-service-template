@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.5](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.4...v0.2.5) (2026-09-22)
+
+
+### Build
+
+* **deps:** bump python dependency group ([fe28344](https://github.com/j2h4u/python-docker-service-template/commit/fe283440d38bdd5e039935c44508fe72aa3a7788))
+
+
+### CI
+
+* **deps:** bump GitHub Actions dependency group ([4fb79e0](https://github.com/j2h4u/python-docker-service-template/commit/4fb79e0f678b6a59a5c7f248d3e72b199deb99f5))
+
+
+### Tests
+
+* add mutation testing gate ([b3cc816](https://github.com/j2h4u/python-docker-service-template/commit/b3cc81611f3d1603779ead6dcd793e2983830efe))
+
 ## [0.2.4](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.3...v0.2.4) (2026-09-03)
 
 
