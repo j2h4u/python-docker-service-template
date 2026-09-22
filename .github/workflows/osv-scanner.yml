@@ -2,7 +2,7 @@ name: OSV Scanner
 
 on:
   schedule:
-    - cron: "19 2 * * 2"
+    - cron: "19 2 8 * *"
   workflow_dispatch:
 
 permissions:
