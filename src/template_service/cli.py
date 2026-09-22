@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 
-from template_service.core import package_version
+from template_service.core import health_status, package_version
 
 app = typer.Typer(help="Python Docker Service Template command-line tools.")
 
@@ -19,7 +19,7 @@ def main(
 
 @app.command()
 def health() -> None:
-    typer.echo("ok")
+    typer.echo(health_status())
 
 
 @app.command()
