@@ -20,6 +20,9 @@ so later agents can see what was already adapted.
   `template-service` to the product names.
 - [ ] Update `release-please-config.json`, `pyproject.toml`, Docker image
   names, Compose service names, workflow names, and visible README text.
+- [ ] Choose the new project's initial version, reset
+  `.release-please-manifest.json`, align `pyproject.toml` and `uv.lock`, and
+  replace or archive the template `CHANGELOG.md`.
 - [ ] Search for leftover template names:
   `rg "python-docker-service-template|template_service|template-service|Python Docker Service Template"`.
 - [ ] Decide whether the project ships in Docker.
@@ -35,6 +38,10 @@ so later agents can see what was already adapted.
 - [ ] Run `uv lock`, then `just verify`.
 - [ ] Follow the GitHub security setup checklist in
   [Best Practices](docs/BEST_PRACTICES.md).
+- [ ] Configure branch protection or a ruleset so `main` requires the aggregate
+  `ci` check, uses squash merges, and uses the PR title as the squash subject.
+- [ ] Confirm GitHub Actions may create pull requests, then approve the first
+  release-please PR workflow run if GitHub asks for write-user approval.
 - [ ] Keep `AGENTS.md` intact unless the gate policy changes deliberately.
 
 ## Gates
@@ -121,11 +128,13 @@ release input. Use `feat:` for minor releases, `fix:` for patch fixes, and `!`
 for breaking major changes; maintenance work uses `chore:`, `refactor:`,
 `test:`, `ci:`, `docs:`, `build:`, or `style:`.
 
+Every non-Dependabot commit in a PR must have a Conventional Commit subject.
 For multi-commit PRs, add a `BEGIN_COMMIT_OVERRIDE` / `END_COMMIT_OVERRIDE`
-block to the PR body when the release notes need more than the squash title.
-Run `just release-check` before pushing a PR that should feed the changelog.
-Release-please owns `CHANGELOG.md`; review its generated release PR before
-merging it.
+block to the PR body; the block is required because the squash commit has only
+one title. Commit body bullets inside release input must be indented rather than
+starting at column zero. Run `just release-check title="..." body=pr-body.md`
+before pushing a PR that should feed the changelog. Release-please owns
+`CHANGELOG.md`; review its generated release PR before merging it.
 
 ## License
 

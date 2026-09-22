@@ -84,7 +84,7 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: fmt-check lint preview-complexity-lint print-lint lock-check typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code package-smoke
+check: lock-check fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code package-smoke
 
 # Unit tests.
 unit:
@@ -94,15 +94,17 @@ unit:
 coverage:
     uv run pytest --cov=src/template_service --cov-report=term-missing
 
-# Human CRAP report over the full suite.
+# Human CRAP report over the fast unit lane.
 crap:
-    uv run pytest --cov=src/template_service --cov-report=term-missing --crap --crap-threshold=30 --crap-top-n=30
+    uv run pytest -m "not integration and not slow" --cov=src/template_service --cov-report=term-missing --crap --crap-threshold=30 --crap-top-n=30
 
 # Hard CRAP gate: every function must stay at or below CRAP 30.
 crap-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
     coverage_file="$(mktemp /tmp/template-service-crap-coverage.XXXXXX.json)"; \
     trap 'rm -f "$coverage_file"' EXIT; \
-    uv run pytest --cov=src/template_service --cov-report=json:"$coverage_file"; \
+    uv run pytest -m "not integration and not slow" --cov=src/template_service --cov-report=json:"$coverage_file"; \
     uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30
 
 # Slow mutation-testing gate for test-suite strength.

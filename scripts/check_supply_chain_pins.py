@@ -5,7 +5,7 @@ from pathlib import Path
 
 FLOATING_ACTION_REFS = {"main", "master", "trunk", "HEAD"}
 FLOATING_IMAGE_TAGS = {"latest", "stable", "edge", "main", "master"}
-WORKFLOW_USES_PATTERN = re.compile(r"^\s*uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
+WORKFLOW_USES_PATTERN = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
 FROM_PATTERN = re.compile(r"^\s*FROM\s+(?P<image>[^\s]+)", re.MULTILINE)
 COPY_FROM_PATTERN = re.compile(r"^\s*COPY\s+--from=(?P<image>[^\s]+)", re.MULTILINE)
 IMAGE_PATTERN = re.compile(r"^\s*image:\s*(?P<image>[^\s#]+)", re.MULTILINE)
