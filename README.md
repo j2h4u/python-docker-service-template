@@ -30,6 +30,8 @@ so later agents can see what was already adapted.
   not the generated project.
 - [ ] Review `tach.toml` and import-linter contracts after the first real
   modules appear.
+- [ ] Keep `just mutation-check` available, then decide when it becomes a
+  required slow gate after real domain behavior and focused unit tests exist.
 - [ ] Run `uv lock`, then `just verify`.
 - [ ] Follow the GitHub security setup checklist in
   [Best Practices](docs/BEST_PRACTICES.md).
@@ -37,9 +39,9 @@ so later agents can see what was already adapted.
 
 ## Gates
 
-`just verify` is the local contract: static checks, CRAP threshold, unit tests,
-locked dependency vulnerability audit, Docker/Compose validation, Docker build,
-and runtime smoke.
+`just verify` is the default local contract: static checks, CRAP threshold,
+unit tests, locked dependency vulnerability audit, Docker/Compose validation,
+Docker build, and runtime smoke.
 
 The static gate includes Ruff, preview complexity/refactor checks, production
 print checks, lockfile sync, basedpyright, import-linter, Tach module
@@ -55,6 +57,7 @@ just check
 just crap-check
 just unit
 just deps-audit
+just mutation-check
 just docker-check
 just docker-build
 just runtime-smoke
@@ -63,6 +66,17 @@ just release-check
 
 `just coverage` is a non-blocking diagnostic report. Coverage is a CRAP input,
 not a standalone quality floor.
+
+`just mutation-check` is a separate slow gate powered by mutmut. It validates
+that tests kill behavioral mutants, exports mutmut's CI statistics, and fails on
+survived mutants, missing test coverage for mutants, suspicious results,
+timeouts, interrupted runs, or segfaults.
+
+This repository is a template, so its own mutation score is only a wiring smoke.
+Generated projects should keep the recipe, remove template-specific exclusions,
+and make it required once real domain behavior and focused unit tests exist. See
+[Best Practices](docs/BEST_PRACTICES.md) for when to promote mutation testing
+from an audit command to a required quality gate.
 
 ## Documentation
 
