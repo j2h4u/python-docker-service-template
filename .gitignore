@@ -6,6 +6,7 @@ __pycache__/
 .pyright/
 .basedpyright/
 .import_linter_cache/
+mutants/
 .coverage
 coverage.xml
 htmlcov/

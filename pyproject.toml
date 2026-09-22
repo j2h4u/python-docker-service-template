@@ -127,6 +127,13 @@ sigterm = true
 show_missing = true
 skip_covered = true
 
+[tool.mutmut]
+source_paths = ["src/template_service"]
+also_copy = ["scripts/"]
+pytest_add_cli_args_test_selection = ["tests/", "-m", "not integration and not slow"]
+pytest_add_cli_args = ["-q", "-p", "no:tach"]
+on_dependency_change = "rerun"
+
 [tool.importlinter]
 root_package = "template_service"
 
@@ -153,6 +160,7 @@ dev = [
     "basedpyright>=1.39.10",
     "deptry>=0.25.1",
     "import-linter>=2.13",
+    "mutmut>=3.8.0",
     "pip-audit>=2.10.1",
     "pytest>=9.1.1",
     "pytest-cov>=7",

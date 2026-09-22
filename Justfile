@@ -105,6 +105,14 @@ crap-check:
     uv run pytest --cov=src/template_service --cov-report=json:"$coverage_file"; \
     uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30
 
+# Slow mutation-testing gate for test-suite strength.
+mutation-check children="4":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    uv run mutmut run --max-children {{children}}
+    uv run mutmut export-cicd-stats
+    uv run python -m scripts.check_mutation_gate mutants/mutmut-cicd-stats.json
+
 # Validate Docker and Compose files without running the service.
 docker-check:
     docker compose config --quiet

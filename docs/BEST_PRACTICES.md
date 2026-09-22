@@ -37,6 +37,8 @@ Local and CI verification must share the same command surface. CI should call
 - `just crap-check` is the hard CRAP threshold gate for every function.
 - Coverage is measured as CRAP input, not as a standalone blocking floor.
 - `just unit` is the behavior gate.
+- `just mutation-check` is the slow mutation-testing gate for test-suite
+  strength.
 - `just deps-audit` is the locked dependency vulnerability gate.
 - `just docker-build` is the runtime packaging gate and includes Dockerfile and
   Compose validation before the image build.
@@ -115,6 +117,49 @@ backend matrices, statistical tests, live integrations, and soak checks.
 Docs-only changes should not spend CI on runtime-affecting gates. On protected
 branches, keep a lightweight required aggregate check for pull requests so
 docs-only PRs still have an explicit merge signal while heavy jobs are skipped.
+
+Use mutation testing to audit whether tests actually detect behavioral changes,
+not just whether code was executed. The template uses `mutmut` as the default
+tool because it is current on modern Python, works naturally with pytest, keeps
+incremental state in `mutants/`, and can run with bounded parallelism through
+`just mutation-check`. The recipe exports mutmut's CI/CD JSON statistics and
+fails on survived mutants, mutants with no tests, suspicious results, timeouts,
+interrupted runs, and segfaults. The default config re-runs mutants when
+dependency or config files change so a gate does not pass on stale cached
+results. Keep mutation testing in the slow lane: run it before releases, for
+mature modules, after important test refactors, and during QA audits. Do not
+wire it into `just check`; mutation testing is intentionally more expensive than
+static analysis and CRAP.
+
+Configure mutation targets narrowly. Start with production source paths, exclude
+slow and integration tests from the mutmut selection command, and prefer adding
+focused tests for surviving mutants over raising a broad pardon budget. Mutmut
+can filter invalid mutants with mypy or pyrefly, but not pyright; in this
+template, rely on the normal basedpyright gate separately instead of hiding
+mutants through a type-check filter.
+
+Disable test-selection plugins inside mutation testing unless they are
+explicitly mutation-aware. This template disables Tach for mutmut's pytest
+invocation because Tach's ordinary affected-test optimization can hide the very
+tests mutmut needs for mutant-to-test mapping.
+
+For larger codebases, consider mutmut's stack-depth limiting only after the
+first useful runs. A low `max_stack_depth` can make mutation testing faster and
+more local, but in CLI-heavy or framework-heavy code it can also disconnect
+valid tests from code they exercise.
+
+Do not treat this template repository's own mutation score as a meaningful
+baseline. The template intentionally has almost no domain behavior; it only
+proves that the tool is installed, configured, and callable through `just`. Its
+packaging-version helper is excluded from mutation because it is template
+boilerplate rather than domain behavior. After creating a real project, keep the
+recipe, remove template-specific exclusions, narrow `source_paths` to production
+modules, and make mutation testing mandatory only when the codebase has behavior
+worth mutating and direct unit tests that should kill mutants. Surviving mutants
+are usually prompts to add better assertions. Timeouts should be investigated
+separately: they can mean the mutant created an infinite wait, but they can also
+reveal that the selected test path is too broad or too slow for a useful
+mutation gate.
 
 ## Python Environment And Dependencies
 
