@@ -33,17 +33,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           if gh api "repos/${{ github.repository }}/code-scanning/alerts" >/dev/null 2>&1; then
             echo "upload=always" >> "$GITHUB_OUTPUT"
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
+          elif [ "${{ github.event.repository.private }}" = "true" ]; then
+            echo "Code scanning is unavailable for this private repository; skipping CodeQL analysis."
             echo "upload=never" >> "$GITHUB_OUTPUT"
             echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Code scanning availability check failed for a public repository"
+            exit 1
           fi
 
       - name: Skip unsupported CodeQL upload
         if: steps.code-scanning.outputs.enabled != 'true'
-        run: echo "Code scanning is unavailable for this repository; skipping CodeQL analysis."
+        run: echo "Code scanning is unavailable for this private repository; skipping CodeQL analysis."
 
       - name: Initialize CodeQL
         if: steps.code-scanning.outputs.enabled == 'true'

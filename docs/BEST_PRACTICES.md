@@ -395,18 +395,18 @@ gh api -X PATCH "repos/$REPO/code-scanning/default-setup" \
   -f state=not-configured \
   --silent || true
 
-gh api -X PATCH "repos/$REPO/actions/permissions/workflow" --input - <<'JSON'
+gh api -X PUT "repos/$REPO/actions/permissions/workflow" --input - <<'JSON'
 {
   "default_workflow_permissions": "read",
-  "can_approve_pull_request_reviews": false
+  "can_approve_pull_request_reviews": true
 }
 JSON
 
-gh api -X PATCH "repos/$REPO/actions/permissions" --input - <<'JSON'
+gh api -X PUT "repos/$REPO/actions/permissions" --input - <<'JSON'
 {
   "enabled": true,
   "allowed_actions": "all",
-  "can_approve_pull_request_reviews": false
+  "can_approve_pull_request_reviews": true
 }
 JSON
 
