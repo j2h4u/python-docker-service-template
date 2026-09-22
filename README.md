@@ -50,6 +50,13 @@ so later agents can see what was already adapted.
 unit tests, locked dependency vulnerability audit, Docker/Compose validation,
 Docker build, and runtime smoke.
 
+CI uses the same gate commands for code-affecting changes, split into separate
+jobs for clearer failures: `just check`, `just crap-check`, `just unit`,
+`just deps-audit`, `just docker-build`, and `just runtime-smoke`. CI adds the
+PR-only release-contract check and skips heavyweight jobs for documentation-only
+changes. `just mutation-check` stays a separate slow audit gate, not part of the
+default local or CI contract.
+
 The static gate includes Ruff, preview complexity/refactor checks, production
 print checks, lockfile sync, basedpyright, import-linter, Tach module
 boundaries, actionlint, deptry, suppression-budget checks, compile checks,
