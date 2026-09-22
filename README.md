@@ -108,6 +108,11 @@ configuration. After creating a repository from this template, follow
 `AGENTS.md` and `docs/BEST_PRACTICES.md` to enable repository security settings
 that GitHub does not reliably copy from templates.
 
+Full CI is event-driven: it runs for PRs and code-affecting pushes, not on a
+daily schedule. Background security automation is intentionally rare: Dependabot
+opens grouped weekly PRs, while CodeQL and OSV scheduled scans run monthly and
+can also be started manually.
+
 ## Releases
 
 Release automation is handled by release-please. PR titles must be releasable

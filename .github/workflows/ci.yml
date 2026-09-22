@@ -9,8 +9,6 @@ on:
       - "**/*.md"
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "37 21 * * *"
   workflow_dispatch:
 
 permissions:
@@ -87,7 +85,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi

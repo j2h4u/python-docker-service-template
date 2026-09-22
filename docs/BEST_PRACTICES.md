@@ -117,6 +117,12 @@ backend matrices, statistical tests, live integrations, and soak checks.
 Docs-only changes should not spend CI on runtime-affecting gates. On protected
 branches, keep a lightweight required aggregate check for pull requests so
 docs-only PRs still have an explicit merge signal while heavy jobs are skipped.
+Do not schedule full CI just to prove the repository is still quiet. Full gates
+should run on pull requests, on pushes to `main` that touch code/runtime/config,
+and on explicit manual dispatch. Keep background security workflows rare:
+Dependabot should open grouped weekly PRs, CodeQL can run on code changes plus a
+monthly schedule, and lockfile vulnerability scanners such as OSV can run
+monthly or manually.
 
 Use mutation testing to audit whether tests actually detect behavioral changes,
 not just whether code was executed. The template uses `mutmut` as the default
@@ -242,6 +248,11 @@ behind workflow-level `paths-ignore`. A small change classifier keeps the final
 aggregate job visible on every PR/push while skipping expensive code gates only
 when the changed files are genuinely documentation or template-maintainer
 metadata.
+
+For private repositories, remember that GitHub-hosted runner minutes are billed
+per job and rounded up. Splitting gates into many parallel jobs improves signal
+and speed for active PRs, but it makes scheduled no-op runs disproportionately
+expensive. Prefer event-driven gates plus rare security schedules.
 
 ## Docker Build Context
 
