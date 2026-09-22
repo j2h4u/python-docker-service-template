@@ -114,6 +114,9 @@ When slow tests become expensive enough to hide signal in the fast PR lane, move
 them to an explicit scheduled or manual slow workflow. Keep the fast `unit`,
 `check`, and `crap-check` gates blocking on ordinary PRs; use the slow lane for
 backend matrices, statistical tests, live integrations, and soak checks.
+`crap-check` should collect coverage from the same fast lane, not from slow or
+live tests. If a function only has integration coverage, add focused unit tests
+or deliberately move that function behind a separate maturity-stage gate.
 Docs-only changes should not spend CI on runtime-affecting gates. On protected
 branches, keep a lightweight required aggregate check for pull requests so
 docs-only PRs still have an explicit merge signal while heavy jobs are skipped.
@@ -231,6 +234,9 @@ Workflow actions and container images must not use floating references. Full
 action versions or SHAs are acceptable; floating refs such as `main`, `master`,
 or major-only tags are not. Container images must use explicit non-floating tags
 or digests, and local Compose images should use clear local tags.
+Check both mapping-style workflow calls (`uses:`) and normal step list calls
+(`- uses:`); a pin policy that misses either form is not a real supply-chain
+gate.
 
 Disable persisted checkout credentials by default:
 
@@ -332,14 +338,23 @@ dates, comparison links, and release PR updates.
 Validate release input before CI has to reject it:
 
 ```bash
-just release-check
+just release-check title="feat(api): add import endpoint" body=pr-body.md
 ```
 
 The release-note override is a `BEGIN_COMMIT_OVERRIDE` /
-`END_COMMIT_OVERRIDE` block in the PR body. Use it when a broad or multi-commit
-change would otherwise squash into one misleading changelog line. Entries in
-the override block should be Conventional Commit messages separated by blank
-lines.
+`END_COMMIT_OVERRIDE` block in the PR body. Use it for every multi-commit PR
+unless the PR is an exempt automation branch. Entries in the override block
+should be Conventional Commit messages separated by blank lines. Commit subjects
+are validated individually, and body bullets in release input should be indented
+instead of starting at column zero so release-please parses the body as part of
+the intended commit message.
+
+After creating a new repository from this template, decide the initial release
+state before the first implementation commit. Set `.release-please-manifest.json`
+and `pyproject.toml` to the chosen initial version, run `uv lock`, and either
+replace `CHANGELOG.md` with a product changelog or keep a short archived note
+that the earlier history belongs to the template repository. Do not accidentally
+ship the template's version and changelog as the new product's release history.
 
 Release automation is not the same as publishing a container. Keep release-please
 as the default release layer for both Docker and non-Docker projects. Add GHCR
@@ -380,14 +395,58 @@ gh api -X PATCH "repos/$REPO/code-scanning/default-setup" \
   -f state=not-configured \
   --silent || true
 
+gh api -X PATCH "repos/$REPO/actions/permissions/workflow" --input - <<'JSON'
+{
+  "default_workflow_permissions": "read",
+  "can_approve_pull_request_reviews": false
+}
+JSON
+
+gh api -X PATCH "repos/$REPO/actions/permissions" --input - <<'JSON'
+{
+  "enabled": true,
+  "allowed_actions": "all",
+  "can_approve_pull_request_reviews": false
+}
+JSON
+
 gh workflow run ci.yml --ref main
 gh workflow run codeql.yml --ref main
 gh workflow run dependency-submission.yml --ref main
+
+gh run list --workflow ci.yml --branch main --limit 1
+gh run list --workflow codeql.yml --branch main --limit 1
+gh run list --workflow dependency-submission.yml --branch main --limit 1
 
 gh api "repos/$REPO/dependabot/alerts?state=open&per_page=100" --jq length
 gh api "repos/$REPO/code-scanning/alerts?state=open&per_page=100" --jq length
 gh api "repos/$REPO/secret-scanning/alerts?state=open&per_page=100" --jq length
 ```
+
+The commands above enable security features and start verification runs; they do
+not replace checking that the runs completed successfully. Read back the run
+conclusions and repository settings before marking the checklist done. Alert
+counts answer "what did the scanner find?", not "did the scanner run?".
+
+Set the merge and protection policy explicitly. Enable squash merges, disable
+merge commits if the project does not need them, configure the squash commit
+subject to use the PR title, and protect `main` with the aggregate `ci` check as
+required. Avoid making path-filtered workflows such as dependency review the only
+required check, because skipped workflow-level checks can leave documentation
+PRs pending. If a ruleset is preferred over classic branch protection, document
+the exact rule name in the generated repository README.
+
+Release-please creates or updates release PRs through GitHub automation. Current
+GitHub behavior can require a write-access user to approve workflow runs created
+from bot-authored PRs. Keep that approval step in the repository bootstrap
+checklist, or replace the default token with a deliberately managed GitHub App
+token.
+
+Private repositories need an explicit security-workflow mode. Dependency Review
+and SARIF uploads require GitHub code-security entitlement on private
+repositories; if that entitlement is absent, keep dependency review skipped,
+keep OSV as a detection-only scan without SARIF upload, and skip CodeQL analysis
+instead of silently running an upload that cannot produce repository alerts.
 
 If GitHub exposes a separate malware-alerts toggle for the new repository, check
 it manually in **Settings -> Code security and analysis**. Do not assume it was

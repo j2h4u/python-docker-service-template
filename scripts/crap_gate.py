@@ -1,6 +1,6 @@
 import argparse
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TypedDict, TypeGuard, cast
@@ -129,41 +129,61 @@ def _load_coverage_report(path: Path) -> _CoverageReport:
 def _function_metrics_from_report(coverage_report: _CoverageReport, source_root: Path) -> list[FunctionMetric]:
     source_root = source_root.resolve()
     metrics: list[FunctionMetric] = []
-    for raw_path, file_data in coverage_report["files"].items():
-        file_metrics = _function_metrics_from_file(raw_path, file_data, source_root)
+    coverage_files = {
+        Path(_expect_str(raw_path, "coverage report file path is invalid")).resolve(): file_data
+        for raw_path, file_data in coverage_report["files"].items()
+    }
+    for file_path in _source_files(source_root):
+        file_data = coverage_files.get(file_path)
+        if file_data is None:
+            raise ValueError(f"coverage report is missing source file {file_path.relative_to(source_root)}")
+        file_metrics = _function_metrics_from_file(file_path, file_data, source_root)
         metrics.extend(file_metrics)
+    if not metrics:
+        raise ValueError(f"no function metrics found under {source_root}")
     return metrics
 
 
+def _source_files(source_root: Path) -> Iterable[Path]:
+    if source_root.is_file():
+        yield source_root.resolve()
+        return
+    for path in sorted(source_root.rglob("*.py")):
+        if path.name != "__init__.py":
+            yield path.resolve()
+
+
 def _function_metrics_from_file(
-    raw_path: str,
+    file_path: Path,
     file_data: _CoverageFileEntry,
     source_root: Path,
 ) -> list[FunctionMetric]:
-    raw_path = _expect_str(raw_path, "coverage report file path is invalid")
-    file_path = Path(raw_path).resolve()
-    if source_root not in file_path.parents and file_path != source_root:
-        return []
-
     relative_path = file_path.relative_to(source_root).as_posix()
     source_text = file_path.read_text(encoding="utf-8")
-    return [
-        metric
-        for qualname, block in _qualnames_from_blocks(_CC_VISIT(source_text))
-        if (metric := _metric_for_function(relative_path, qualname, block, file_data["functions"])) is not None
-    ]
+    functions = _expect_dict(file_data.get("functions"), f"coverage data for {relative_path} has no functions object")
+    metrics: list[FunctionMetric] = []
+    missing: list[str] = []
+    for qualname, block in _qualnames_from_blocks(_CC_VISIT(source_text)):
+        coverage_entry = functions.get(qualname)
+        if coverage_entry is None:
+            missing.append(f"{relative_path}::{qualname}")
+            continue
+        metrics.append(_metric_for_function(relative_path, qualname, block, coverage_entry))
+    if missing:
+        raise ValueError("coverage report is missing function metrics: " + ", ".join(missing))
+    return metrics
 
 
 def _metric_for_function(
     relative_path: str,
     qualname: str,
     block: _RadonBlock,
-    functions: dict[str, _CoverageFunctionEntry],
-) -> FunctionMetric | None:
-    if qualname not in functions:
-        return None
-
-    summary = functions[qualname]["summary"]
+    function_data: object,
+) -> FunctionMetric:
+    summary = _expect_dict(
+        _expect_dict(function_data, f"coverage data for {relative_path}::{qualname} is invalid").get("summary"),
+        f"coverage data for {relative_path}::{qualname} has no summary object",
+    )
     num_statements = _expect_int(
         summary["num_statements"],
         f"coverage summary for {relative_path}::{qualname} has invalid num_statements",
@@ -205,7 +225,11 @@ def _parse_args(argv: list[str] | None) -> _GateArgs:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    metrics = _function_metrics_from_report(_load_coverage_report(args.coverage), args.src)
+    try:
+        metrics = _function_metrics_from_report(_load_coverage_report(args.coverage), args.src)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"CRAP gate failed: {exc}")
+        return 1
     offenders = [metric for metric in metrics if metric.crap > args.threshold]
     if offenders:
         print(f"CRAP gate failed: {len(offenders)} function(s) exceed {args.threshold:.2f}")

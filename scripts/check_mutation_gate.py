@@ -10,7 +10,19 @@ BLOCKING_FIELDS = (
     "timeout",
     "check_was_interrupted_by_user",
     "segfault",
+    "not_checked",
 )
+REQUIRED_FIELDS = (
+    "total",
+    "killed",
+    "survived",
+    "no_tests",
+    "suspicious",
+    "timeout",
+    "check_was_interrupted_by_user",
+    "segfault",
+)
+OPTIONAL_RESULT_FIELDS = ("skipped",)
 
 
 def _read_stats(path: Path) -> dict[str, int]:
@@ -18,7 +30,28 @@ def _read_stats(path: Path) -> dict[str, int]:
     if not isinstance(raw_data, dict):
         raise SystemExit(f"mutation stats must be a JSON object: {path}")
 
-    return {key: value for key, value in raw_data.items() if isinstance(key, str) and isinstance(value, int)}
+    stats: dict[str, int] = {}
+    for key, value in raw_data.items():
+        if not isinstance(key, str):
+            raise SystemExit(f"mutation stats contains a non-string key: {path}")
+        if not isinstance(value, int):
+            raise SystemExit(f"mutation stats field {key!r} must be an integer")
+        if value < 0:
+            raise SystemExit(f"mutation stats field {key!r} must be non-negative")
+        stats[key] = value
+    missing = [field for field in REQUIRED_FIELDS if field not in stats]
+    if missing:
+        raise SystemExit(f"mutation stats missing required field(s): {', '.join(missing)}")
+    return stats
+
+
+def _validate_totals(stats: dict[str, int]) -> None:
+    total = stats["total"]
+    if total <= 0:
+        raise SystemExit("mutation stats total must be greater than zero")
+    classified = sum(stats[field] for field in ("killed", *BLOCKING_FIELDS, *OPTIONAL_RESULT_FIELDS) if field in stats)
+    if classified != total:
+        raise SystemExit(f"mutation stats total={total} does not match classified mutants={classified}")
 
 
 def _format_blockers(stats: dict[str, int]) -> str:
@@ -28,6 +61,7 @@ def _format_blockers(stats: dict[str, int]) -> str:
 
 def check_mutation_gate(path: Path) -> int:
     stats = _read_stats(path)
+    _validate_totals(stats)
     blockers = _format_blockers(stats)
     total = stats.get("total", 0)
 
