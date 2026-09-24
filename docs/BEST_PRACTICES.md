@@ -163,12 +163,14 @@ proves that the tool is installed, configured, and callable through `just`. Its
 packaging-version helper is excluded from mutation because it is template
 boilerplate rather than domain behavior. After creating a real project, keep the
 recipe, remove template-specific exclusions, narrow `source_paths` to production
-modules, and make mutation testing mandatory only when the codebase has behavior
-worth mutating and direct unit tests that should kill mutants. Surviving mutants
-are usually prompts to add better assertions. Timeouts should be investigated
-separately: they can mean the mutant created an infinite wait, but they can also
-reveal that the selected test path is too broad or too slow for a useful
-mutation gate.
+modules, and enable the hard mutation gate by default with zero surviving
+mutants allowed. A baseline or ratchet is not a template default; use one only
+temporarily while migrating an existing project with accumulated mutation debt.
+Make it explicit, forbid new survivors, and reduce it monotonically to zero.
+Surviving mutants are usually prompts to add better assertions. Timeouts should
+be investigated separately: they can mean the mutant created an infinite wait,
+but they can also reveal that the selected test path is too broad or too slow
+for a useful mutation gate.
 
 ## Python Environment And Dependencies
 
