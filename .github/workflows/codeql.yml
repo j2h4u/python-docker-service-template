@@ -52,14 +52,14 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.code-scanning.outputs.enabled == 'true'
-        uses: github/codeql-action/init@v4.38.1
+        uses: github/codeql-action/init@v4.38.2
         with:
           languages: python
           queries: security-extended
 
       - name: Perform CodeQL Analysis
         if: steps.code-scanning.outputs.enabled == 'true'
-        uses: github/codeql-action/analyze@v4.38.1
+        uses: github/codeql-action/analyze@v4.38.2
         with:
           category: "/language:python"
           upload: ${{ steps.code-scanning.outputs.upload }}
