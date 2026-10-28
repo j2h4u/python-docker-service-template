@@ -98,6 +98,10 @@ clone-audit *args:
 unit:
     uv run pytest -q -n auto -m "not integration and not slow"
 
+# Offline integration tests against installed tools and isolated fixtures.
+integration:
+    uv run pytest -q -m "integration and not slow"
+
 # Non-blocking diagnostic coverage report. CRAP uses coverage as input.
 coverage:
     uv run pytest --cov=src/template_service --cov-report=term-missing
@@ -130,7 +134,7 @@ docker-check:
 
 # Build the Docker image.
 docker-build: docker-check
-    docker build -t python-docker-service-template:local .
+    docker compose build
 
 # Recreate the local Docker service.
 docker-up:
@@ -140,39 +144,37 @@ docker-up:
 runtime-smoke:
     #!/usr/bin/env bash
     set -euo pipefail
-    project="python-docker-service-template-smoke"
+    project="python-docker-service-template-smoke-$$-${RANDOM}"
     cleanup() {
         status="$1"
         if [ "$status" -ne 0 ]; then
             docker compose -p "$project" ps || true
             docker compose -p "$project" logs --no-color --timestamps --tail=200 || true
         fi
-        docker compose -p "$project" down -v --remove-orphans || true
+        docker compose -p "$project" down -v --remove-orphans --rmi local || true
     }
     trap 'cleanup "$?"' EXIT
     docker compose -p "$project" up -d --build --force-recreate --remove-orphans --wait --wait-timeout 90
     docker compose -p "$project" exec -T python-docker-service-template template-service health
 
 # Full local gate for agents before claiming completion.
-verify: check crap-check unit deps-audit docker-build runtime-smoke
+verify: check crap-check unit integration deps-audit docker-build runtime-smoke
 
 # Everything the PR owes release-please before CI has to say no.
-release-check title="" body="":
+release-check $title="" $body="":
     #!/usr/bin/env bash
     set -euo pipefail
     base="$(git merge-base origin/main HEAD)"
     count="$(git rev-list --no-merges --count "${base}..HEAD")"
-    title='{{title}}'
     if [ -z "${title}" ]; then
         title="$(git log -1 --format=%s "$(git rev-list "${base}..HEAD" | tail -1)")"
     fi
     uv run python scripts/validate_pr_title.py --title "${title}"
     uv run python -m scripts.validate_pr_commits --base-sha "${base}" --head-sha "$(git rev-parse HEAD)"
-    body='{{body}}'
     if [ -n "${body}" ]; then
         uv run python -m scripts.validate_release_notes --body-file "${body}" --commit-count "${count}"
     elif [ "${count}" -gt 1 ]; then
         printf 'note: %s commits will squash into one.\n' "${count}" >&2
-        printf 'The PR body needs a BEGIN_COMMIT_OVERRIDE block; re-run with body=<file> to check it.\n' >&2
+        printf 'The PR body needs a BEGIN_COMMIT_OVERRIDE block; re-run with positional title and body-file arguments.\n' >&2
         exit 1
     fi

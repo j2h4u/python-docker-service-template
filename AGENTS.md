@@ -16,6 +16,8 @@ make a change pass.
 - `just crap-check` is the authoritative radon-backed CRAP threshold gate for
   every function. Coverage is used as CRAP input, not as a standalone floor.
 - `just unit` must pass for behavior changes.
+- `just integration` must pass for QA wiring changes; it uses offline tools and
+  isolated fixtures, not external services.
 - `just deps-audit` must pass before claiming release or template baseline
   readiness.
 - `just runtime-smoke` must pass for Docker runtime changes.
