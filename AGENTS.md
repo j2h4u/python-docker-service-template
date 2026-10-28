@@ -6,7 +6,10 @@ make a change pass.
 - `just check` is the static gate: Ruff, preview complexity/refactor checks,
   production print guard, lock sync, types, imports, module boundaries,
   workflow lint, dependency hygiene, supply-chain pin checks, suppression
-  budget, compile, dead-code checks, and packaging smoke must pass.
+  budget, compile, dead-code checks, clone checking, and packaging smoke must pass.
+- Clone findings must be fixed or explicitly reviewed under
+  [Code Clone Detection](docs/CODE_CLONES.md). Never auto-accept findings to
+  turn the gate green; semantic/API audit is manual and outside ordinary CI.
 - Ruff complexity and unused-argument rules are blocking. Preview complexity
   rules that are not covered by Ruff prefixes are checked explicitly, but
   Ruff complexity is only an auxiliary lint signal.
@@ -29,3 +32,7 @@ and explain why in the same change.
 
 Follow the post-template GitHub security checklist in
 `docs/BEST_PRACTICES.md`.
+
+When upgrading an existing project's QA, follow the
+[adoption procedure](docs/BEST_PRACTICES.md#adopting-into-an-existing-repository)
+instead of copying bootstrap settings wholesale.

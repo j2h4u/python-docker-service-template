@@ -26,11 +26,8 @@ def commit_messages(base_sha: str, head_sha: str) -> list[str]:
     return [message.strip("\n") for message in result.stdout.split(RECORD_SEPARATOR) if message.strip()]
 
 
-def _validate_message(message: str) -> list[str]:
+def subject_problems(subject: str) -> list[str]:
     problems: list[str] = []
-    lines = message.splitlines()
-    subject = lines[0].strip()
-
     match = TITLE_PATTERN.fullmatch(subject)
     if match is None:
         problems.append(f"'{subject}' is not a Conventional Commit subject.")
@@ -39,6 +36,13 @@ def _validate_message(message: str) -> list[str]:
         if commit_type not in RELEASABLE_TYPES:
             allowed = ", ".join(sorted(RELEASABLE_TYPES))
             problems.append(f"'{subject}' uses unsupported type '{commit_type}'. Allowed types: {allowed}.")
+    return problems
+
+
+def _validate_message(message: str) -> list[str]:
+    lines = message.splitlines()
+    subject = lines[0].strip()
+    problems = subject_problems(subject)
 
     bullets = [line for line in lines[1:] if line.startswith(BULLET_MARKERS)]
     if bullets:

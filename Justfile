@@ -84,7 +84,15 @@ fix:
     uv run ruff format --no-preview src scripts tests
 
 # Static quality gate.
-check: lock-check fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code package-smoke
+check: lock-check fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code clone-check package-smoke
+
+# Require current reviewed dispositions for production clone findings.
+clone-check:
+    uv run --locked python -m scripts.check_clones
+
+# Manual audit; accepts --include-tests or explicit semantic/API options.
+clone-audit *args:
+    uv run --locked python -m scripts.clone_audit {{args}}
 
 # Unit tests.
 unit:

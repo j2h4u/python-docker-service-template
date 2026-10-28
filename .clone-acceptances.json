@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "contract": {
+    "identity": "raw-pair-v1",
+    "roots": [
+      "src",
+      "scripts"
+    ],
+    "tools": {
+      "pyscn": {
+        "version": "1.33.0",
+        "min_lines": 8,
+        "min_nodes": 20,
+        "max_edit_distance": 50,
+        "ignore_literals": false,
+        "ignore_identifiers": false,
+        "cost_model_type": "python",
+        "type1_threshold": 0.85,
+        "type2_threshold": 0.75,
+        "type3_threshold": 0.7,
+        "type4_threshold": 0.65,
+        "similarity_threshold": 0.65,
+        "enable_dfa": true,
+        "enabled_clone_types": [
+          "type1",
+          "type2",
+          "type3",
+          "type4"
+        ],
+        "min_similarity": 0.0,
+        "max_similarity": 1.0,
+        "max_results": 0,
+        "grouping_mode": "complete_linkage",
+        "grouping_threshold": 0.65,
+        "k_core_k": 2,
+        "lsh_enabled": "false",
+        "max_memory_mb": 0,
+        "enable_batching": false,
+        "max_goroutines": 1,
+        "timeout_seconds": 300,
+        "exclude_patterns": [
+          "**/*.pyc"
+        ]
+      },
+      "jscpd": {
+        "version": "5.4.1",
+        "minTokens": 50,
+        "minLines": 5,
+        "maxLines": 1000000,
+        "mode": "weak",
+        "ignoreIdentifiers": true,
+        "ignoreLiterals": true,
+        "maxGapLines": 2,
+        "similarity": 0.8,
+        "minNodes": 20,
+        "format": [
+          "python"
+        ],
+        "gitignore": false,
+        "absolute": true,
+        "maxSize": "1mb",
+        "reporters": [
+          "json"
+        ]
+      }
+    }
+  },
+  "accepted": [
+    {
+      "detector": "jscpd",
+      "identity": "2c842afb2dbdd08ebc40f6d478c843383fbee955acc66e103a3b41644f383f0a",
+      "count": 1,
+      "reason": "The suppression-policy TOML table guard and CRAP coverage JSON object guard validate independent formats with different diagnostic and exception contracts. These seven-line type checks intentionally remain local so changing one gate's input handling does not couple the other gate to it."
+    }
+  ]
+}
