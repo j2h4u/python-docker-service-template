@@ -7,7 +7,7 @@ make a change pass.
   finding. Prefer native validators and focused audits; keep custom QA code and
   its existing checks proportional to actual risks.
 - Run each required test selection, analysis and build once per verification.
-- `just check` is the static gate: Ruff's main pass with explicit preview rules
+- `just check` is the static gate: Ruff's main pass with security and explicit preview rules
   and per-file production-print exceptions, lock sync, types, imports, module
   boundaries, workflow lint, dependency hygiene, supply-chain pin checks,
   suppression budget, compile, dead-code checks, clone checking, and packaging
@@ -18,8 +18,11 @@ make a change pass.
 - Ruff complexity and unused-argument rules are blocking. Preview complexity
   rules that are not covered by Ruff prefixes are checked explicitly, but
   Ruff complexity is only an auxiliary lint signal.
-- `just crap-check` is the authoritative radon-backed CRAP threshold gate for
-  every function. Coverage is used as CRAP input, not as a standalone floor.
+- Production typing rejects Unknown types and bare generics; keep source roots
+  aligned with the production execution environment when adopting the template.
+- `just crap-check` enforces independent Radon CC <= 10 and CRAP <= 30 limits
+  for every production function from one covered fast test run. Coverage is
+  CRAP input, not a standalone floor; high coverage does not waive the CC limit.
 - `just verify` is the full local gate: `check`, `crap-check` (including its
   fast unit lane with coverage), offline `integration`, `deps-audit`, and
   `runtime-smoke`. Do not redundantly run `unit` or `docker-build` as part of

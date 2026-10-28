@@ -82,8 +82,8 @@ for scope mapping, configuration conflicts, inherited debt and acceptance checks
 
 ## Gates
 
-`just verify` is the full local contract: static checks, the CRAP threshold
-(which runs the fast unit lane with coverage), offline integration tests,
+`just verify` is the full local contract: static checks, independent Radon
+CC <= 10 and CRAP <= 30 limits from one covered fast unit run, offline integration tests,
 locked dependency vulnerability audit, and runtime smoke. The runtime smoke
 depends on Docker/Compose validation and performs the image build.
 
@@ -94,12 +94,14 @@ PR-only release-contract check and skips heavyweight jobs for documentation-only
 changes. `just mutation-check` stays a separate slow audit gate, not part of the
 default local or CI contract.
 
-The static gate includes one Ruff pass with explicit preview
+The static gate includes one Ruff pass with security and explicit preview
 complexity/refactor rules and per-file production-print exceptions, lockfile
-sync, basedpyright, import-linter, Tach module boundaries, actionlint, deptry,
+sync, basedpyright (rejecting Unknown types and bare generics in production),
+import-linter, Tach module boundaries, actionlint, deptry,
 suppression-budget checks, compile checks, supply-chain pin checks, Vulture over
 source, scripts, and tests, clone review enforcement over production and QA
-scripts, and a packaging smoke test that builds and installs the wheel. Pytest
+scripts, and a packaging smoke that installs the locked wheel and runs its CLI
+from an empty external directory with isolated Python lookup. Pytest
 runs in strict mode. `preview-complexity-lint` and `print-lint` remain available
 as standalone diagnostics; `check` already covers those rules in its main Ruff
 pass.

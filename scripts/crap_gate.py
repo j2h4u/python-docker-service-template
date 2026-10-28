@@ -10,6 +10,7 @@ from typing import Protocol, TypedDict, cast
 from radon.complexity import cc_visit_ast
 
 DEFAULT_THRESHOLD = 30.0
+DEFAULT_MAX_COMPLEXITY = 10
 DEFAULT_SOURCE_ROOT = Path("src/template_service")
 
 
@@ -41,6 +42,7 @@ class _GateArgs(Protocol):
     coverage: Path
     src: Path
     threshold: float
+    max_complexity: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,10 +219,13 @@ def _format_offender(metric: FunctionMetric) -> str:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Fail if any function exceeds the configured CRAP threshold.")
+    parser = argparse.ArgumentParser(description="Enforce independent Radon complexity and CRAP thresholds.")
     parser.add_argument("--coverage", type=Path, required=True, help="pytest-cov JSON report")
     parser.add_argument("--src", type=Path, default=DEFAULT_SOURCE_ROOT, help="source root to scan")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="maximum allowed CRAP per function")
+    parser.add_argument(
+        "--max-complexity", type=int, default=DEFAULT_MAX_COMPLEXITY, help="maximum allowed Radon CC per function"
+    )
     return parser
 
 
@@ -236,14 +241,22 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"CRAP gate failed: {exc}")
         return 1
-    offenders = [metric for metric in metrics if metric.crap > args.threshold]
+    offenders = [
+        metric for metric in metrics if metric.crap > args.threshold or metric.complexity > args.max_complexity
+    ]
     if offenders:
-        print(f"CRAP gate failed: {len(offenders)} function(s) exceed {args.threshold:.2f}")
+        print(
+            f"Radon CC/CRAP gate failed: {len(offenders)} function(s) exceed "
+            f"CC {args.max_complexity} or CRAP {args.threshold:.2f}"
+        )
         for metric in sorted(offenders, key=lambda item: (-item.crap, item.key))[:20]:
             print(f"  {_format_offender(metric)}")
         return 1
 
-    print(f"CRAP gate passed: {len(metrics)} function(s), threshold {args.threshold:.2f}")
+    print(
+        f"Radon CC/CRAP gate passed: {len(metrics)} function(s), "
+        f"CC <= {args.max_complexity}, CRAP <= {args.threshold:.2f}"
+    )
     return 0
 
 
