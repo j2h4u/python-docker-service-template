@@ -101,6 +101,8 @@ Local and CI verification must share the same command surface. CI should call
 - `just crap-check` is the hard CRAP threshold gate for every function.
 - Coverage is measured as CRAP input, not as a standalone blocking floor.
 - `just unit` is the behavior gate.
+- `just integration` checks installed QA tools and command wiring through
+  isolated offline fixtures. It is included in `just verify` and the CI test job.
 - `just mutation-check` is the slow mutation-testing gate for test-suite
   strength.
 - `just deps-audit` is the locked dependency vulnerability gate.
@@ -171,8 +173,11 @@ Use pytest markers from the start:
   boundaries;
 - `slow` marks tests that are too slow for the default unit gate.
 
-Slow and integration tests can move to separate workflows as the project grows,
-but the markers should exist before the suite needs them.
+The template's offline integration tests run in the normal full local gate and
+the existing CI test job. They require no provider credentials or external
+services. Keep these regression scenarios blocking when QA tooling changes.
+Slow or live-service integration tests need an explicit separate lane as the
+project grows; do not silently drop offline checks when introducing that lane.
 
 When slow tests become expensive enough to hide signal in the fast PR lane, move
 them to an explicit scheduled or manual slow workflow. Keep the fast `unit`,
@@ -374,6 +379,11 @@ project, waits for health, and exercises one real interface. The first smoke can
 be tiny, such as an installed CLI `health` command; replace it with a
 domain-level protocol smoke when the service grows a real interface.
 
+Give every smoke invocation a unique Compose project and use Compose-generated
+image names rather than a shared custom tag. On exit, remove only that project's
+containers, network, volumes and local images. Normal `docker-build` should use
+the same Compose naming as `docker-up`.
+
 For protocol services, runtime smoke should exercise the protocol surface, not
 only process liveness. For example, list MCP tools over the real transport, call
 a harmless read-only endpoint, or run a redacted stdio smoke. Allocate temporary
@@ -406,16 +416,17 @@ dates, comparison links, and release PR updates.
 Validate release input before CI has to reject it:
 
 ```bash
-just release-check title="feat(api): add import endpoint" body=pr-body.md
+just release-check "feat(api): add import endpoint" pr-body.md
 ```
 
 The release-note override is a `BEGIN_COMMIT_OVERRIDE` /
 `END_COMMIT_OVERRIDE` block in the PR body. Use it for every multi-commit PR
 unless the PR is an exempt automation branch. Entries in the override block
 should be Conventional Commit messages separated by blank lines. Commit subjects
-are validated individually, and body bullets in release input should be indented
-instead of starting at column zero so release-please parses the body as part of
-the intended commit message.
+are validated individually. Ordinary body bullets in both raw commits and
+overrides must be indented instead of starting at column zero. Bullets directly
+following `BREAKING CHANGE:` may remain unindented; do not insert a blank line
+between that note and its bullets. The same validator enforces both inputs.
 
 After creating a new repository from this template, decide the initial release
 state before the first implementation commit. Set `.release-please-manifest.json`

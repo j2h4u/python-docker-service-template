@@ -11,6 +11,7 @@ from typing import cast
 from scripts.validate_pr_title import RELEASABLE_TYPES, TITLE_PATTERN
 
 BULLET_MARKERS = ("- ", "* ", "+ ")
+BREAKING_PREFIX = "BREAKING CHANGE:"
 RECORD_SEPARATOR_FORMAT = "%x00"
 RECORD_SEPARATOR = "\x00"
 SCISSORS = "# ------------------------ >8 ------------------------"
@@ -39,27 +40,54 @@ def subject_problems(subject: str) -> list[str]:
     return problems
 
 
-def _validate_message(message: str) -> list[str]:
+def _body_bullet_problems(subject: str, lines: list[str]) -> list[str]:
+    in_breaking_note = False
+    for line in lines:
+        if line.startswith(BREAKING_PREFIX):
+            in_breaking_note = True
+        elif not line.strip():
+            in_breaking_note = False
+        elif line.startswith(BULLET_MARKERS) and not in_breaking_note:
+            return [
+                (
+                    f"'{subject}' has a Markdown bullet at column 0 ({line!r}). "
+                    "Release-please reads the marker as a commit type and can drop the commit from the changelog. "
+                    "Indent body bullets by two spaces."
+                )
+            ]
+    return []
+
+
+def _breaking_change_problems(subject: str, lines: list[str]) -> list[str]:
+    problems: list[str] = []
+    for index, line in enumerate(lines):
+        if not line.startswith(BREAKING_PREFIX):
+            continue
+        remainder = lines[index + 1 :]
+        if remainder and not remainder[0].strip() and any(item.strip() for item in remainder):
+            problems.append(
+                f"'{subject}' has a blank line directly after '{BREAKING_PREFIX}'. "
+                "Release-please ends the breaking-change note there, dropping everything below it. "
+                "Put the bullets on the very next line."
+            )
+    return problems
+
+
+def message_problems(message: str) -> list[str]:
     lines = message.splitlines()
     subject = lines[0].strip()
-    problems = subject_problems(subject)
-
-    bullets = [line for line in lines[1:] if line.startswith(BULLET_MARKERS)]
-    if bullets:
-        problems.append(
-            f"'{subject}' has a Markdown bullet at column 0 ({bullets[0]!r}). "
-            "Release-please reads the marker as a commit type and can drop the commit from the changelog. "
-            "Indent body bullets by two spaces."
-        )
-
-    return problems
+    return (
+        subject_problems(subject)
+        + _body_bullet_problems(subject, lines[1:])
+        + _breaking_change_problems(subject, lines[1:])
+    )
 
 
 def validate_commit_messages(messages: list[str]) -> tuple[bool, list[str]]:
     if not messages:
         return True, ["No non-merge commits to validate."]
 
-    problems = [problem for message in messages for problem in _validate_message(message)]
+    problems = [problem for message in messages for problem in message_problems(message)]
     if problems:
         return False, problems
     return True, [f"All {len(messages)} commit message(s) are releasable."]

@@ -171,6 +171,9 @@ jobs:
       - name: Unit tests
         run: just unit
 
+      - name: Offline integration tests
+        run: just integration
+
   crap:
     needs: changes
     if: needs.changes.outputs.code == 'true'

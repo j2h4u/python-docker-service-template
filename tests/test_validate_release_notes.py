@@ -1,3 +1,4 @@
+import pytest
 from scripts.validate_pr_commits import validate_commit_messages
 from scripts.validate_release_notes import _split_messages, validate_release_notes
 
@@ -87,6 +88,23 @@ def test_unsupported_type_in_an_override_entry_is_rejected() -> None:
     assert any("unsupported type 'wip'" in message for message in messages)
 
 
+@pytest.mark.parametrize("second_type", ["fix", "wip"])
+def test_breaking_note_and_following_override_entry_are_validated_separately(second_type: str) -> None:
+    body = (
+        "BEGIN_COMMIT_OVERRIDE\nfeat!: replace the API\n\n"
+        "BREAKING CHANGE: migrate calls.\n- Use the new API.\n\n"
+        f"{second_type}: maintain the CLI\n\n  - Preserve validation.\nEND_COMMIT_OVERRIDE"
+    )
+
+    ok, messages = validate_release_notes(body, commit_count=2, require_above=1)
+
+    assert ok == (second_type == "fix")
+    if ok:
+        assert "2 changelog entr" in messages[0]
+    else:
+        assert "unsupported type 'wip'" in messages[0]
+
+
 def test_commit_subjects_must_be_conventional() -> None:
     ok, messages = validate_commit_messages(["fix(ci): pin the digest", "quick wip fix"])
 
@@ -100,14 +118,45 @@ def test_conventional_commit_subjects_pass() -> None:
     assert ok
 
 
-def test_column_zero_bullet_in_a_commit_body_is_rejected() -> None:
-    ok, messages = validate_commit_messages(["ci: add validators\n\n- one thing\n- another thing"])
+@pytest.mark.parametrize("marker", ["-", "*", "+"])
+@pytest.mark.parametrize("indent", ["", "  "])
+def test_ordinary_body_bullets_follow_the_same_rule(marker: str, indent: str) -> None:
+    message = f"ci: add validators\n\n{indent}{marker} one thing\n{indent}{marker} another thing"
+    body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
 
-    assert not ok
-    assert any("Markdown bullet at column 0" in message for message in messages)
+    commit_ok, commit_messages = validate_commit_messages([message])
+    override_ok, override_messages = validate_release_notes(body, commit_count=2, require_above=1)
+
+    assert commit_ok == override_ok == bool(indent)
+    if not indent:
+        assert commit_messages == override_messages
+        assert "Markdown bullet at column 0" in commit_messages[0]
 
 
-def test_indented_bullets_in_a_commit_body_are_accepted() -> None:
-    ok, _ = validate_commit_messages(["ci: add validators\n\n  - one thing\n  - another thing"])
+@pytest.mark.parametrize("marker", ["-", "*", "+"])
+@pytest.mark.parametrize("gap", ["", "\n", "  \n"])
+def test_breaking_note_bullets_follow_the_same_rule(marker: str, gap: str) -> None:
+    message = f"feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n{gap}{marker} Use the new API."
+    body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
 
-    assert ok
+    commit_ok, commit_messages = validate_commit_messages([message])
+    override_ok, override_messages = validate_release_notes(body, commit_count=2, require_above=1)
+
+    assert commit_ok == override_ok == (not gap)
+    if gap:
+        assert commit_messages == override_messages
+        assert any("blank line directly after" in problem for problem in commit_messages)
+
+
+@pytest.mark.parametrize("marker", ["-", "*", "+"])
+def test_breaking_note_does_not_exempt_later_ordinary_bullets(marker: str) -> None:
+    message = f"feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n{marker} New API.\n\n{marker} Ordinary body."
+    body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
+
+    commit_ok, commit_messages = validate_commit_messages([message])
+    override_ok, override_messages = validate_release_notes(body, commit_count=2, require_above=1)
+
+    assert not commit_ok
+    assert not override_ok
+    assert commit_messages == override_messages
+    assert "Markdown bullet at column 0" in commit_messages[0]

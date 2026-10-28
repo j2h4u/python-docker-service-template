@@ -1,11 +1,12 @@
 import argparse
+import ast
 import json
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, TypedDict, TypeGuard, cast
+from typing import Protocol, TypedDict, cast
 
-from radon.complexity import cc_visit
+from radon.complexity import cc_visit_ast
 
 DEFAULT_THRESHOLD = 30.0
 DEFAULT_SOURCE_ROOT = Path("src/template_service")
@@ -35,16 +36,6 @@ class _RadonBlock(Protocol):
     complexity: int
 
 
-class _RadonFunctionBlock(_RadonBlock, Protocol):
-    closures: Sequence[_RadonFunctionBlock]
-    is_method: bool
-
-
-class _RadonClassBlock(_RadonBlock, Protocol):
-    inner_classes: Sequence[_RadonClassBlock]
-    methods: Sequence[_RadonFunctionBlock]
-
-
 class _GateArgs(Protocol):
     coverage: Path
     src: Path
@@ -60,8 +51,8 @@ class FunctionMetric:
     crap: float
 
 
-RadonVisit = Callable[[str], Sequence[_RadonBlock]]
-_CC_VISIT: RadonVisit = cast(RadonVisit, cc_visit)
+RadonVisit = Callable[[ast.AST], Sequence[_RadonBlock]]
+_CC_VISIT: RadonVisit = cast(RadonVisit, cc_visit_ast)
 
 
 def _round_metric(value: float) -> float:
@@ -86,38 +77,15 @@ def _expect_int(value: object, context: str) -> int:
     return value
 
 
-def _is_class_block(block: _RadonBlock) -> TypeGuard[_RadonClassBlock]:
-    return hasattr(block, "methods") and hasattr(block, "inner_classes")
-
-
-def _qualname_from_block(block: _RadonBlock, prefix: tuple[str, ...] = ()) -> list[tuple[str, _RadonBlock]]:
-    if _is_class_block(block):
-        return _class_member_qualnames(block, prefix)
-
-    function_block = cast(_RadonFunctionBlock, block)
-    if not prefix and function_block.is_method:
-        return []
-    qualname = ".".join((*prefix, function_block.name))
-    items: list[tuple[str, _RadonBlock]] = [(qualname, function_block)]
-    for closure in function_block.closures:
-        items.extend(_qualname_from_block(closure, (*prefix, function_block.name)))
-    return items
-
-
-def _class_member_qualnames(block: _RadonClassBlock, prefix: tuple[str, ...]) -> list[tuple[str, _RadonBlock]]:
-    class_prefix = (*prefix, block.name)
+def _function_blocks(node: ast.AST, prefix: tuple[str, ...] = ()) -> list[tuple[str, _RadonBlock]]:
     items: list[tuple[str, _RadonBlock]] = []
-    for inner_class in block.inner_classes:
-        items.extend(_qualname_from_block(inner_class, class_prefix))
-    for method in block.methods:
-        items.extend(_qualname_from_block(method, class_prefix))
-    return items
-
-
-def _qualnames_from_blocks(blocks: Sequence[_RadonBlock]) -> list[tuple[str, _RadonBlock]]:
-    items: list[tuple[str, _RadonBlock]] = []
-    for block in blocks:
-        items.extend(_qualname_from_block(block))
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        prefix = (*prefix, node.name)
+        if not isinstance(node, ast.ClassDef):
+            # Radon's enclosing-function visitor drops local classes; visit each function directly.
+            items.append((".".join(prefix), _CC_VISIT(node)[0]))
+    for child in ast.iter_child_nodes(node):
+        items.extend(_function_blocks(child, prefix))
     return items
 
 
@@ -165,7 +133,8 @@ def _function_metrics_from_file(
     functions = _expect_dict(file_data.get("functions"), f"coverage data for {relative_path} has no functions object")
     metrics: list[FunctionMetric] = []
     missing: list[str] = []
-    for qualname, block in _qualnames_from_blocks(_CC_VISIT(source_text)):
+    blocks = _function_blocks(ast.parse(source_text))
+    for qualname, block in blocks:
         coverage_entry = functions.get(qualname)
         if coverage_entry is None:
             missing.append(f"{relative_path}::{qualname}")
@@ -173,6 +142,11 @@ def _function_metrics_from_file(
         metrics.append(_metric_for_function(relative_path, qualname, block, coverage_entry))
     if missing:
         raise ValueError("coverage report is missing function metrics: " + ", ".join(missing))
+    unmatched = functions.keys() - {qualname for qualname, _ in blocks} - {""}
+    if unmatched:
+        raise ValueError(
+            f"coverage report has unmatched function metrics for {relative_path}: {', '.join(sorted(unmatched))}"
+        )
     return metrics
 
 

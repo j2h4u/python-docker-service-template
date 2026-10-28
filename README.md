@@ -77,11 +77,11 @@ for scope mapping, configuration conflicts, inherited debt and acceptance checks
 ## Gates
 
 `just verify` is the default local contract: static checks, CRAP threshold,
-unit tests, locked dependency vulnerability audit, Docker/Compose validation,
+unit and offline integration tests, locked dependency vulnerability audit, Docker/Compose validation,
 Docker build, and runtime smoke.
 
 CI uses the same gate commands for code-affecting changes, split into separate
-jobs for clearer failures: `just check`, `just crap-check`, `just unit`,
+jobs for clearer failures: `just check`, `just crap-check`, `just unit`, `just integration`,
 `just deps-audit`, `just docker-build`, and `just runtime-smoke`. CI adds the
 PR-only release-contract check and skips heavyweight jobs for documentation-only
 changes. `just mutation-check` stays a separate slow audit gate, not part of the
@@ -101,6 +101,7 @@ Run individual gates while iterating:
 just check
 just crap-check
 just unit
+just integration
 just deps-audit
 just clone-check
 just clone-audit
@@ -142,10 +143,12 @@ Build and run the service locally:
 
 ```bash
 just docker-build
-docker run --rm python-docker-service-template:local health
+docker compose run --rm python-docker-service-template health
 docker compose up -d --force-recreate --remove-orphans --wait
 ```
 
+Compose names images per project; parallel runtime smokes use unique project
+names and remove only their own containers, networks and images.
 The container runs as a non-root user, exposes `template-service` as the
 entrypoint, and uses `template-service health` as its Docker healthcheck. The
 Compose service defaults to a 1 GiB memory limit.
@@ -173,8 +176,10 @@ for breaking major changes; maintenance work uses `chore:`, `refactor:`,
 Every non-Dependabot commit in a PR must have a Conventional Commit subject.
 For multi-commit PRs, add a `BEGIN_COMMIT_OVERRIDE` / `END_COMMIT_OVERRIDE`
 block to the PR body; the block is required because the squash commit has only
-one title. Commit body bullets inside release input must be indented rather than
-starting at column zero. Run `just release-check title="..." body=pr-body.md`
+one title. Ordinary commit body bullets inside release input must be indented.
+Bullets directly following a `BREAKING CHANGE:` note may remain unindented;
+do not put a blank line between that note and its bullets.
+Run `just release-check "feat(api): add endpoint" pr-body.md`
 before pushing a PR that should feed the changelog. Release-please owns
 [CHANGELOG.md](CHANGELOG.md); review its generated release PR before merging it.
 

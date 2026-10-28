@@ -18,6 +18,7 @@ def main() -> int:
         workdir = Path(tmp)
         dist_dir = workdir / "dist"
         venv_dir = workdir / "venv"
+        constraints_file = workdir / "runtime-constraints.txt"
 
         _run(["uv", "build", "--wheel", "--out-dir", str(dist_dir), "--no-build-logs", str(repo_root)])
 
@@ -31,8 +32,38 @@ def main() -> int:
         if not venv_python.is_file():
             raise RuntimeError(f"venv python not found: {venv_python}")
 
+        _run(
+            [
+                "uv",
+                "export",
+                "--locked",
+                "--no-dev",
+                "--no-emit-project",
+                "--no-emit-workspace",
+                "--no-emit-local",
+                "--no-header",
+                "--no-annotate",
+                "--no-hashes",
+                "--no-editable",
+                "--output-file",
+                str(constraints_file),
+            ],
+            cwd=repo_root,
+        )
         install_env = {**os.environ, "UV_LINK_MODE": "copy"}
-        _run(["uv", "pip", "install", "--python", str(venv_python), str(wheel_files[0])], env=install_env)
+        _run(
+            [
+                "uv",
+                "pip",
+                "install",
+                "--python",
+                str(venv_python),
+                "--constraint",
+                str(constraints_file),
+                str(wheel_files[0]),
+            ],
+            env=install_env,
+        )
         _run([str(executable), "--help"])
         _run([str(executable), "health"])
 
