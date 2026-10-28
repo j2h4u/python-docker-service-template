@@ -59,6 +59,12 @@ existing checks. Start its acceptance file with its own contract and an empty
 service, package version, release history or maintainer roadmap. See both
 [adoption checklists](../README.md).
 
+Keep clone scope in the shared `SOURCE_ROOTS` policy rather than adding a
+separate audit scope knob. Use detector-native configuration and report
+validation where available, and audit reviewed acceptance changes explicitly.
+Retain existing justified contract checks, but do not reproduce detector
+behavior in one-off tests for every finding.
+
 At first adoption, scan the full production scope and review every emitted
 finding. Do not bulk-accept existing debt.
 
@@ -153,6 +159,9 @@ embedding/API opt-in. Use it at onboarding, before major reviews and after
 substantial restructuring. Include tests when appropriate and distinguish
 production, test and mixed findings.
 
+This extended audit is optional, not a default adoption requirement. Copy its
+embedding/API path only when the target has a concrete use for it.
+
 Embeddings can reveal additional related implementations, but similarity does
 not prove behavioral equivalence. jscpd semantic mode is experimental. Reuse
 its implementation; do not build another vector database or inference engine.
@@ -188,16 +197,13 @@ never automatically alter production acceptances.
 
 ## Verification During Adoption And Upgrades
 
-Run the adapter and acceptance tests before changing tools or settings. They
-must cover edits to either endpoint, relocation, endpoint reversal, additional
-copies, stale records, invalid reports, parse errors, tiny/empty inputs,
-suppression bypasses and observable saturation. Verify ordinary operation
-without inference/API access. Exercise semantic integration with a local
-provider stub and verify timeout/failure reports before using a real provider.
-
-Then run the target project's full production scan and review all emitted
-findings under its final settings. Passing tests for the template's tiny
-service does not establish correctness of the target's scope or exceptions.
+Run existing checks for the shared contract when changing its behavior, then
+run the target project's full production scan and review every emitted finding
+under final settings. Do not create exhaustive malformed-report fixtures or a
+regression test for each finding; rely on native validators where available
+and audit the actual scan and acceptance changes. Passing checks for the
+template's tiny service does not establish correctness of the target's scope
+or exceptions.
 
 ## Sources
 
@@ -210,4 +216,4 @@ service does not establish correctness of the target's scope or exceptions.
 - [PMD CPD suppression comments](https://pmd.github.io/pmd/pmd_userdocs_cpd.html).
 
 Live documentation can describe newer behavior than pinned binaries. Verify
-the installed versions and regression fixtures during upgrades.
+the installed versions and any existing contract checks during upgrades.

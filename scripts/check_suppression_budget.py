@@ -9,11 +9,11 @@ from typing import cast
 CONFIG_TABLE = ("tool", "template_service", "suppressions")
 DEFAULT_SCAN_PATHS = ("src", "scripts", "tests", "pyproject.toml", "Justfile", ".github/workflows")
 SUPPRESSION_PATTERNS = {
-    "noqa": re.compile(r"#\s*noqa(?::|\b)"),
+    "noqa": re.compile(r"#\s*noqa(?::|\b)", re.IGNORECASE),
     "type_ignore": re.compile(r"#\s*type:\s*ignore(?:\[|\b)"),
     "pyright": re.compile(r"#\s*pyright:\s*ignore(?:\[|\b)"),
     "pylint": re.compile(r"#\s*pylint:\s*disable="),
-    "ruff": re.compile(r"#\s*ruff:\s*noqa(?::|\b)"),
+    "ruff": re.compile(r"#\s*ruff:\s*noqa(?::|\b)", re.IGNORECASE),
 }
 TEXT_SUFFIXES = {".py", ".toml", ".yml", ".yaml"}
 
@@ -45,7 +45,7 @@ def _config(root: Path) -> dict[str, object]:
 
 
 def _scan_paths(root: Path, config: dict[str, object]) -> list[Path]:
-    raw_paths = config.get("paths", DEFAULT_SCAN_PATHS)
+    raw_paths = config.get("paths", list(DEFAULT_SCAN_PATHS))
     if not isinstance(raw_paths, list):
         raise TypeError("[tool.template_service.suppressions].paths must be a list")
     return [root / str(path) for path in raw_paths]

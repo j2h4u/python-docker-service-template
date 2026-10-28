@@ -30,8 +30,11 @@ so later agents can see what was already adapted.
   `rg "python-docker-service-template|template_service|template-service|Python Docker Service Template"`.
 - [ ] Decide whether the project ships in Docker.
 - [ ] If it does not use Docker, remove `Dockerfile`, `docker-compose.yml`,
-  `.dockerignore`, Docker Just recipes, Docker CI jobs, and runtime smoke
-  requirements. Keep Python QA, dependency, security, and release gates.
+  `.dockerignore`, Docker Just recipes, `tests/test_runtime_smoke.py`, Docker
+  CI jobs, Docker from this README's requirements and agent instructions, and
+  Docker-only dependencies in `verify` and the aggregate CI job's `needs`.
+  Keep Python QA, dependency, security, and release gates, and retain or add
+  the service-appropriate runtime smoke.
 - [ ] Delete or rewrite `docs/meta/`; it describes this template repository,
   not the generated project.
 - [ ] Review `tach.toml` and import-linter contracts after the first real
@@ -40,7 +43,9 @@ so later agents can see what was already adapted.
   [Code Clone Detection](docs/CODE_CLONES.md#adoption-and-review).
 - [ ] Keep `just mutation-check` available, then decide when it becomes a
   required slow gate after real domain behavior and focused unit tests exist.
-- [ ] Run `uv lock`, then `just verify`.
+- [ ] If the project uses `uv`, run `uv lock`, then `just verify`. Preserve
+  Poetry, PDM, or another existing package manager when adopting QA; do not
+  migrate implicitly.
 - [ ] Follow the GitHub security setup checklist in
   [Best Practices](docs/BEST_PRACTICES.md).
 - [ ] Configure branch protection or a ruleset so `main` requires the aggregate
@@ -60,7 +65,8 @@ for scope mapping, configuration conflicts, inherited debt and acceptance checks
   and select the missing capabilities.
 - [ ] Merge the relevant `pyproject.toml` settings and dev dependencies; adapt
   source paths, architecture contracts and entrypoints to the target project.
-  Regenerate its lockfile with `uv`; do not replace it with the template lockfile.
+  Update the lockfile with the target's package manager; do not replace it with
+  the template lockfile or migrate managers implicitly.
 - [ ] Copy the required QA scripts and merge their Just recipes and CI calls.
   Keep local and CI commands aligned and preserve any stronger existing gates.
 - [ ] Adopt reusable documentation and its links. Do not copy the example
@@ -76,26 +82,32 @@ for scope mapping, configuration conflicts, inherited debt and acceptance checks
 
 ## Gates
 
-`just verify` is the default local contract: static checks, CRAP threshold,
-unit and offline integration tests, locked dependency vulnerability audit, Docker/Compose validation,
-Docker build, and runtime smoke.
+`just verify` is the full local contract: static checks, the CRAP threshold
+(which runs the fast unit lane with coverage), offline integration tests,
+locked dependency vulnerability audit, and runtime smoke. The runtime smoke
+depends on Docker/Compose validation and performs the image build.
 
 CI uses the same gate commands for code-affecting changes, split into separate
-jobs for clearer failures: `just check`, `just crap-check`, `just unit`, `just integration`,
-`just deps-audit`, `just docker-build`, and `just runtime-smoke`. CI adds the
+jobs for clearer failures: `just check`, `just crap-check`, `just integration`,
+`just deps-audit`, and `just runtime-smoke`. CI adds the
 PR-only release-contract check and skips heavyweight jobs for documentation-only
 changes. `just mutation-check` stays a separate slow audit gate, not part of the
 default local or CI contract.
 
-The static gate includes Ruff, preview complexity/refactor checks, production
-print checks, lockfile sync, basedpyright, import-linter, Tach module
-boundaries, actionlint, deptry, suppression-budget checks, compile checks,
-supply-chain pin checks, Vulture over source, scripts, and tests, clone review
-enforcement over production and QA scripts, and a
-packaging smoke test that builds and installs the wheel. Pytest runs in strict
-mode.
+The static gate includes one Ruff pass with explicit preview
+complexity/refactor rules and per-file production-print exceptions, lockfile
+sync, basedpyright, import-linter, Tach module boundaries, actionlint, deptry,
+suppression-budget checks, compile checks, supply-chain pin checks, Vulture over
+source, scripts, and tests, clone review enforcement over production and QA
+scripts, and a packaging smoke test that builds and installs the wheel. Pytest
+runs in strict mode. `preview-complexity-lint` and `print-lint` remain available
+as standalone diagnostics; `check` already covers those rules in its main Ruff
+pass.
 
-Run individual gates while iterating:
+Run the full contract with `just verify`. During iteration, run only the
+relevant recipes; `just unit` and `just docker-build` remain available as
+standalone commands but are already covered by the corresponding full-gate
+paths. Other useful standalone checks include:
 
 ```bash
 just check
@@ -112,6 +124,11 @@ just runtime-smoke
 just release-check
 ```
 
+Do not run `just unit` as an additional full-gate step: `crap-check` already
+runs the fast unit lane with coverage. Likewise, `runtime-smoke` already
+depends on Docker/Compose validation and builds the image; use `docker-build`
+only when that standalone build is the specific check needed.
+
 `just coverage` is a non-blocking diagnostic report. Coverage is a CRAP input,
 not a standalone quality floor.
 
@@ -121,8 +138,9 @@ survived mutants, missing test coverage for mutants, suspicious results,
 timeouts, interrupted runs, or segfaults.
 
 This repository is a template, so its own mutation score is only a wiring smoke.
-Generated projects should keep the recipe, remove template-specific exclusions,
-and make it required once real domain behavior and focused unit tests exist. See
+Generated projects may retain the recipe, remove template-specific exclusions,
+and consider making it required once real domain behavior and focused tests
+justify the added cost. See
 [Best Practices](docs/BEST_PRACTICES.md) for when to promote mutation testing
 from an audit command to a required quality gate.
 
@@ -167,7 +185,14 @@ can also be started manually.
 
 ## Releases
 
-Release automation is handled by release-please. PR titles must be releasable
+Release-please prepares version and changelog PRs. The release workflow publishes
+merged release PRs with native `gh`, targeting their exact merge SHA only after
+its latest `CI` push run on `main` succeeds. Manual dispatch uses the same check;
+moving `main` cannot change the published commit. Pending or failed candidate CI
+leaves publication blocked with an explicit warning. GitHub generates release
+notes; release-please continues to own the project changelog.
+
+PR titles must be releasable
 Conventional Commit subjects because squash merges use that title as the
 release input. Use `feat:` for minor releases, `fix:` for patch fixes, and `!`
 for breaking major changes; maintenance work uses `chore:`, `refactor:`,

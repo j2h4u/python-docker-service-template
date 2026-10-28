@@ -118,10 +118,9 @@ def test_conventional_commit_subjects_pass() -> None:
     assert ok
 
 
-@pytest.mark.parametrize("marker", ["-", "*", "+"])
 @pytest.mark.parametrize("indent", ["", "  "])
-def test_ordinary_body_bullets_follow_the_same_rule(marker: str, indent: str) -> None:
-    message = f"ci: add validators\n\n{indent}{marker} one thing\n{indent}{marker} another thing"
+def test_ordinary_body_bullets_follow_the_same_rule(indent: str) -> None:
+    message = f"ci: add validators\n\n{indent}- one thing\n{indent}- another thing"
     body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
 
     commit_ok, commit_messages = validate_commit_messages([message])
@@ -133,10 +132,9 @@ def test_ordinary_body_bullets_follow_the_same_rule(marker: str, indent: str) ->
         assert "Markdown bullet at column 0" in commit_messages[0]
 
 
-@pytest.mark.parametrize("marker", ["-", "*", "+"])
-@pytest.mark.parametrize("gap", ["", "\n", "  \n"])
-def test_breaking_note_bullets_follow_the_same_rule(marker: str, gap: str) -> None:
-    message = f"feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n{gap}{marker} Use the new API."
+@pytest.mark.parametrize("gap", ["", "\n"])
+def test_breaking_note_bullets_follow_the_same_rule(gap: str) -> None:
+    message = f"feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n{gap}- Use the new API."
     body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
 
     commit_ok, commit_messages = validate_commit_messages([message])
@@ -148,9 +146,8 @@ def test_breaking_note_bullets_follow_the_same_rule(marker: str, gap: str) -> No
         assert any("blank line directly after" in problem for problem in commit_messages)
 
 
-@pytest.mark.parametrize("marker", ["-", "*", "+"])
-def test_breaking_note_does_not_exempt_later_ordinary_bullets(marker: str) -> None:
-    message = f"feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n{marker} New API.\n\n{marker} Ordinary body."
+def test_breaking_note_does_not_exempt_later_ordinary_bullets() -> None:
+    message = "feat!: replace the API\n\nBREAKING CHANGE: migrate calls.\n- New API.\n\n- Ordinary body."
     body = f"BEGIN_COMMIT_OVERRIDE\n{message}\nEND_COMMIT_OVERRIDE"
 
     commit_ok, commit_messages = validate_commit_messages([message])

@@ -43,6 +43,7 @@ target-version = "py314"
 extend-exclude = [".planning"]
 
 [tool.ruff.lint]
+preview = true
 explicit-preview-rules = true
 select = [
     "E4",
@@ -73,8 +74,12 @@ select = [
     "ARG",
     "C90",
     "PLR09",
+    "PLR0914",
+    "PLR0916",
+    "PLR0917",
     "PLR17",
     "PLR2004",
+    "T20",
 ]
 ignore = ["ISC001"]
 
@@ -83,9 +88,12 @@ ignore = ["ISC001"]
     "DTZ",
     "PERF401",
     "PLR2004",
+    "T20",
 ]
+"scripts/**" = ["T20"]
 
 [tool.ruff.format]
+preview = false
 quote-style = "double"
 
 [tool.pyright]
