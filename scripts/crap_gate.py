@@ -1,6 +1,7 @@
 import argparse
 import ast
 import json
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,16 +78,42 @@ def _expect_int(value: object, context: str) -> int:
     return value
 
 
-def _function_blocks(node: ast.AST, prefix: tuple[str, ...] = ()) -> list[tuple[str, _RadonBlock]]:
-    items: list[tuple[str, _RadonBlock]] = []
+type _FunctionNode = ast.FunctionDef | ast.AsyncFunctionDef
+
+
+def _function_blocks(node: ast.AST, prefix: tuple[str, ...] = ()) -> list[tuple[str, _FunctionNode, _RadonBlock]]:
+    items: list[tuple[str, _FunctionNode, _RadonBlock]] = []
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
         prefix = (*prefix, node.name)
         if not isinstance(node, ast.ClassDef):
             # Radon's enclosing-function visitor drops local classes; visit each function directly.
-            items.append((".".join(prefix), _CC_VISIT(node)[0]))
+            items.append((".".join(prefix), node, _CC_VISIT(node)[0]))
     for child in ast.iter_child_nodes(node):
         items.extend(_function_blocks(child, prefix))
     return items
+
+
+def _coverage_lines(file_data: _CoverageFileEntry, field: str) -> set[int]:
+    value = file_data.get(field)
+    if not isinstance(value, list):
+        raise ValueError(f"coverage data has no {field} array for colliding function names")
+    return {_expect_int(line, f"coverage {field} contains an invalid line") for line in value}
+
+
+def _body_lines(node: _FunctionNode) -> set[int]:
+    return set(range(node.body[0].lineno, cast(int, node.body[-1].end_lineno) + 1))
+
+
+def _positional_coverage(node: _FunctionNode, file_data: _CoverageFileEntry) -> _CoverageFunctionEntry:
+    lines = _body_lines(node)
+    # Nested bodies belong to their own functions, including methods of local classes.
+    for child in ast.walk(node):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child is not node:
+            lines -= _body_lines(child)
+    lines -= _coverage_lines(file_data, "excluded_lines")
+    executed = lines & _coverage_lines(file_data, "executed_lines")
+    statements = executed | (lines & _coverage_lines(file_data, "missing_lines"))
+    return {"summary": {"covered_lines": len(executed), "num_statements": len(statements)}}
 
 
 def _load_coverage_report(path: Path) -> _CoverageReport:
@@ -134,15 +161,18 @@ def _function_metrics_from_file(
     metrics: list[FunctionMetric] = []
     missing: list[str] = []
     blocks = _function_blocks(ast.parse(source_text))
-    for qualname, block in blocks:
+    counts = Counter(qualname for qualname, _, _ in blocks)
+    for qualname, node, block in blocks:
         coverage_entry = functions.get(qualname)
         if coverage_entry is None:
             missing.append(f"{relative_path}::{qualname}")
             continue
+        if counts[qualname] > 1:
+            coverage_entry = _positional_coverage(node, file_data)
         metrics.append(_metric_for_function(relative_path, qualname, block, coverage_entry))
     if missing:
         raise ValueError("coverage report is missing function metrics: " + ", ".join(missing))
-    unmatched = functions.keys() - {qualname for qualname, _ in blocks} - {""}
+    unmatched = functions.keys() - counts.keys() - {""}
     if unmatched:
         raise ValueError(
             f"coverage report has unmatched function metrics for {relative_path}: {', '.join(sorted(unmatched))}"

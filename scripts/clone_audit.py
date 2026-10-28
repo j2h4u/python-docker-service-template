@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import cast
 from urllib.parse import urlsplit
 
+from scripts.check_clones import SOURCE_ROOTS
 from scripts.clone_tools import inventory, parse_jscpd
 
 
@@ -125,7 +126,9 @@ def _arguments(argv: list[str] | None) -> AuditArgs:
     parser.add_argument("--timeout", type=float, default=180)
     parser.add_argument("--output", type=Path, default=Path(".clone-audit"))
     args = parser.parse_args(argv, namespace=AuditArgs())
-    args.roots = ("src", "scripts", "tests") if args.include_tests else ("src", "scripts")
+    args.roots = SOURCE_ROOTS
+    if args.include_tests and "tests" not in args.roots:
+        args.roots += ("tests",)
     return args
 
 

@@ -27,7 +27,7 @@ print-lint:
 
 # Check formatting without writing.
 fmt-check:
-    uv run ruff format --no-preview --check src scripts tests
+    uv run ruff format --check src scripts tests
 
 # Check import-layer architecture contracts.
 import-contracts:
@@ -81,10 +81,10 @@ package-smoke:
 # Auto-fix Ruff findings with safe fixes only, then format.
 fix:
     uv run ruff check --preview --fix src scripts tests
-    uv run ruff format --no-preview src scripts tests
+    uv run ruff format src scripts tests
 
 # Static quality gate.
-check: lock-check fmt-check lint preview-complexity-lint print-lint typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code clone-check package-smoke
+check: lock-check fmt-check lint typecheck typecheck-tests import-contracts module-boundaries actionlint supply-chain-pins suppression-budget deptry compile dead-code clone-check package-smoke
 
 # Require current reviewed dispositions for production clone findings.
 clone-check:
@@ -141,7 +141,7 @@ docker-up:
     docker compose up -d --force-recreate --remove-orphans --wait --wait-timeout 90
 
 # CI-safe runtime smoke: build, start, wait for health, exercise the installed CLI, and clean up.
-runtime-smoke:
+runtime-smoke: docker-check
     #!/usr/bin/env bash
     set -euo pipefail
     project="python-docker-service-template-smoke-$$-${RANDOM}"
@@ -158,7 +158,7 @@ runtime-smoke:
     docker compose -p "$project" exec -T python-docker-service-template template-service health
 
 # Full local gate for agents before claiming completion.
-verify: check crap-check unit integration deps-audit docker-build runtime-smoke
+verify: check crap-check integration deps-audit runtime-smoke
 
 # Everything the PR owes release-please before CI has to say no.
 release-check $title="" $body="":

@@ -3,10 +3,15 @@
 This project uses hard gates. Do not weaken, skip, or locally suppress them to
 make a change pass.
 
-- `just check` is the static gate: Ruff, preview complexity/refactor checks,
-  production print guard, lock sync, types, imports, module boundaries,
-  workflow lint, dependency hygiene, supply-chain pin checks, suppression
-  budget, compile, dead-code checks, clone checking, and packaging smoke must pass.
+- Do not automatically add tests for configuration changes or every audit
+  finding. Prefer native validators and focused audits; keep custom QA code and
+  its existing checks proportional to actual risks.
+- Run each required test selection, analysis and build once per verification.
+- `just check` is the static gate: Ruff's main pass with explicit preview rules
+  and per-file production-print exceptions, lock sync, types, imports, module
+  boundaries, workflow lint, dependency hygiene, supply-chain pin checks,
+  suppression budget, compile, dead-code checks, clone checking, and packaging
+  smoke must pass.
 - Clone findings must be fixed or explicitly reviewed under
   [Code Clone Detection](docs/CODE_CLONES.md). Never auto-accept findings to
   turn the gate green; semantic/API audit is manual and outside ordinary CI.
@@ -15,15 +20,20 @@ make a change pass.
   Ruff complexity is only an auxiliary lint signal.
 - `just crap-check` is the authoritative radon-backed CRAP threshold gate for
   every function. Coverage is used as CRAP input, not as a standalone floor.
-- `just unit` must pass for behavior changes.
-- `just integration` must pass for QA wiring changes; it uses offline tools and
-  isolated fixtures, not external services.
+- `just verify` is the full local gate: `check`, `crap-check` (including its
+  fast unit lane with coverage), offline `integration`, `deps-audit`, and
+  `runtime-smoke`. Do not redundantly run `unit` or `docker-build` as part of
+  full verification.
+- `just integration` uses offline tools and isolated fixtures, not external
+  services.
 - `just deps-audit` must pass before claiming release or template baseline
   readiness.
 - `just runtime-smoke` must pass for Docker runtime changes.
-- `just docker-build` must pass because the service runs in Docker; it includes
-  Dockerfile and Compose static validation before image build.
-- Use `uv` only. Keep `uv.lock` current and use hardlink mode outside Docker.
+- `just runtime-smoke` depends on Docker/Compose validation and performs the
+  runtime image build; it is the Docker runtime gate.
+- Use `uv` for this template. Keep `uv.lock` current and use hardlink mode
+  outside Docker. When adopting QA into an existing project, preserve its
+  package manager unless migration is explicitly in scope.
 - Keep stable QA and runtime practices in `docs/BEST_PRACTICES.md`; keep this
   file compact.
 
