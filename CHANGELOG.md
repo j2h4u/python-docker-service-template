@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.8...v0.3.0) (2026-10-28)
+
+
+### Features
+
+* **qa:** enforce reviewed code clones ([a43932b](https://github.com/j2h4u/python-docker-service-template/commit/a43932b82a135ebaf2b1e36324f850f408f94f18))
+
+
+### Fixes
+
+* **qa:** close full template audit gaps ([5ffc6aa](https://github.com/j2h4u/python-docker-service-template/commit/5ffc6aa80176da6dcfb1702011d1147d60fe6193))
+
+
+### Documentation
+
+* clarify local and CI gates ([c182b0b](https://github.com/j2h4u/python-docker-service-template/commit/c182b0b1c790ec4fc89cd0df6db08095aa74893b))
+* require zero-survivor mutation gates ([#35](https://github.com/j2h4u/python-docker-service-template/issues/35)) ([e342660](https://github.com/j2h4u/python-docker-service-template/commit/e342660a9884b82cf7e3142acd8996d895aecd77))
+
 ## [0.2.8](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.7...v0.2.8) (2026-09-22)
 
 
