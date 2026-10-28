@@ -110,14 +110,14 @@ coverage:
 crap:
     uv run pytest -m "not integration and not slow" --cov=src/template_service --cov-report=term-missing --crap --crap-threshold=30 --crap-top-n=30
 
-# Hard CRAP gate: every function must stay at or below CRAP 30.
+# Independent Radon CC <= 10 and CRAP <= 30 from one covered fast test run.
 crap-check:
     #!/usr/bin/env bash
     set -euo pipefail
     coverage_file="$(mktemp /tmp/template-service-crap-coverage.XXXXXX.json)"; \
     trap 'rm -f "$coverage_file"' EXIT; \
     uv run pytest -m "not integration and not slow" --cov=src/template_service --cov-report=json:"$coverage_file"; \
-    uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30
+    uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30 --max-complexity 10
 
 # Slow mutation-testing gate for test-suite strength.
 mutation-check children="4":

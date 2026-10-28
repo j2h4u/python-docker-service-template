@@ -96,14 +96,15 @@ manual embedding audits. `just clone-check` is included in `just check`.
 Local and CI verification must share the same command surface. CI should call
 `just` recipes instead of reimplementing local checks in workflow YAML.
 
-- `just check` is the static gate: formatting, one Ruff pass with explicit
+- `just check` is the static gate: formatting, one Ruff pass with security and explicit
   preview rules and per-file production-print exceptions, types, import
   contracts, Tach module boundaries, GitHub Actions lint, dependency hygiene,
   suppression budgets, compile checks, dead-code checks, lockfile sync,
   supply-chain pin checks, and packaging smoke. Standalone preview-complexity
   and print lint recipes do not need to be added to the aggregate gate.
-- `just crap-check` is the hard CRAP threshold gate for every function and runs
-  the fast unit lane with coverage as its CRAP input.
+- `just crap-check` enforces independent Radon CC <= 10 and CRAP <= 30 limits
+  for every production function. It runs the fast unit lane with coverage once
+  and evaluates both limits from the same function metrics.
 - Coverage is measured as CRAP input, not as a standalone blocking floor.
 - `just integration` checks installed QA tools and command wiring through
   isolated offline fixtures. It is included in `just verify` and the CI test job.
@@ -128,6 +129,32 @@ boolean expressions, comprehensions, conditional expressions, and other Python
 constructs that radon counts. When discussing or tuning CRAP, use the
 radon-based complexity value from `just crap-check` / `scripts/crap_gate.py`,
 not Ruff's C901 score.
+
+The Radon CC ceiling is independent of coverage. A fully covered function has
+CRAP equal to CC, so CRAP <= 30 alone still allows CC 30. Enforce CC <= 10 as
+well; do not compute a second function inventory or repeat covered tests to do
+so. The limits are explicit in the shared `crap-check` recipe, used locally
+and in CI.
+
+Enable Ruff's native `S` security rules in the main lint pass. Dependency audits
+and CodeQL do not replace these cheap checks for unsafe source constructs.
+Review exceptions by rule and path: pytest needs `S101` for assertions; local
+Coverage fixtures may need `S102` for controlled `exec`; reviewed argv-only QA
+subprocess adapters need `S603`, and PATH-based tool fixtures may need `S607`.
+Keep these exceptions confined to their actual owners in `pyproject.toml`.
+Do not globally ignore security rules or exempt all test/script security checks.
+Re-review argv sources if an exempt adapter starts accepting untrusted input.
+
+Production Basedpyright rejects Unknown variables, arguments, members,
+parameters and lambda types, plus missing generic type arguments. This closes
+the untyped-data escape path that banning `Any` alone does not cover. The
+`src` execution environment applies those diagnostics within the existing
+checker run; scripts and fixtures retain the root configuration. Adapt that
+environment's root for flat or differently named source layouts during
+[adoption](#adopting-into-an-existing-repository). New projects need no diagnostic
+baseline. For vendor-heavy or brownfield code, first review actual findings and
+type external boundaries with useful stubs or protocols; do not conceal Unknown
+values behind casts or copy another project's baseline or broad exceptions.
 
 Prefer absolute gates over baseline ratchets in new repositories. Ratchets are
 useful for paying down inherited debt, but they can also preserve debt while
@@ -411,9 +438,14 @@ one-shot CLI health command, or a read-only protocol check against a temporary
 runtime directory.
 
 Python packages should also have a packaging smoke gate. Build the wheel,
-install it into an isolated virtual environment, and run the installed
-entrypoint. This catches missing package data, broken script entrypoints, and
-wheel/install issues that source-tree tests can miss.
+install it into an isolated virtual environment using the locked runtime
+constraints, and run the installed entrypoint from an empty directory outside
+the checkout. Clear `PYTHONPATH`, `PYTHONHOME` and `VIRTUAL_ENV` for those smoke
+commands and set `PYTHONSAFEPATH=1`. Otherwise checkout imports or local resources
+can make an incomplete wheel appear healthy. Reuse the existing wheel/install;
+isolation must not introduce another build or test lane. This catches missing
+package data, broken script entrypoints, and wheel/install issues that
+source-tree tests can miss.
 
 ## Releases
 

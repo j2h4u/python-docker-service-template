@@ -72,6 +72,7 @@ select = [
     "G",
     "N818",
     "ARG",
+    "S",
     "C90",
     "PLR09",
     "PLR0914",
@@ -89,8 +90,19 @@ ignore = ["ISC001"]
     "PERF401",
     "PLR2004",
     "T20",
+    "S101", # pytest assertions are executable test expectations.
 ]
 "scripts/**" = ["T20"]
+# These QA adapters execute reviewed argv arrays without a shell.
+"scripts/check_packaging_smoke.py" = ["S603"]
+"scripts/clone_audit.py" = ["S603"]
+"scripts/clone_tools.py" = ["S603"]
+"scripts/validate_pr_commits.py" = ["S603"]
+# Local Git/Just/Docker fixtures deliberately resolve fake or installed tools via PATH.
+"tests/test_release_recipe.py" = ["S603", "S607"]
+"tests/test_runtime_smoke.py" = ["S607"]
+# Coverage fixtures execute locally constructed Python, never external input.
+"tests/test_crap_local_classes.py" = ["S102"]
 
 [tool.ruff.format]
 preview = false
@@ -113,6 +125,15 @@ reportUnannotatedClassAttribute = "none"
 reportUnusedCallResult = "none"
 reportImplicitStringConcatenation = "none"
 reportPrivateUsage = "none"
+
+[[tool.pyright.executionEnvironments]]
+root = "src"
+reportUnknownVariableType = "error"
+reportUnknownArgumentType = "error"
+reportUnknownMemberType = "error"
+reportUnknownParameterType = "error"
+reportUnknownLambdaType = "error"
+reportMissingTypeArgument = "error"
 
 [tool.vulture]
 paths = ["src/template_service", "scripts", "tests"]

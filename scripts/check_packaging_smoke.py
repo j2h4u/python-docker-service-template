@@ -64,8 +64,13 @@ def main() -> int:
             ],
             env=install_env,
         )
-        _run([str(executable), "--help"])
-        _run([str(executable), "health"])
+        smoke_dir = workdir / "smoke"
+        smoke_dir.mkdir()
+        smoke_env = {**os.environ, "PYTHONSAFEPATH": "1"}
+        for variable in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
+            smoke_env.pop(variable, None)
+        _run([str(executable), "--help"], cwd=smoke_dir, env=smoke_env)
+        _run([str(executable), "health"], cwd=smoke_dir, env=smoke_env)
 
     print("packaging smoke passed: wheel built, installed, CLI help and health ran")
     return 0

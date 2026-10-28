@@ -71,7 +71,8 @@ def _run(command: list[str], root: Path, deadline: float, env: dict[str, str]) -
 
 
 def _semantic(args: AuditArgs, root: Path, run: Path, deadline: float) -> None:
-    assert args.endpoint is not None and args.model is not None
+    if args.endpoint is None or args.model is None:
+        raise ValueError("semantic audit requires an endpoint and model")
     output = run / "semantic"
     output.mkdir()
     config = output / "config.json"
