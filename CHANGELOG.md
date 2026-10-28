@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/j2h4u/python-docker-service-template/compare/v0.3.0...v0.3.1) (2026-10-28)
+
+
+### Fixes
+
+* **qa:** remove duplicate work and close audit gaps ([00fd8e4](https://github.com/j2h4u/python-docker-service-template/commit/00fd8e4fd0d2442ff36078be0e4f997215552c65))
+
 ## [0.3.0](https://github.com/j2h4u/python-docker-service-template/compare/v0.2.8...v0.3.0) (2026-10-28)
 
 
