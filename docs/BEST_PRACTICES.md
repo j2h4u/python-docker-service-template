@@ -1,11 +1,12 @@
 # Best Practices
 
-This repository is both a project template and a store of preferred QA,
-runtime, and repository-operating practices. Keep durable rationale here. Keep
-`AGENTS.md` short and operational.
+This repository is knowledge as code: executable QA, runtime and repository
+practices with durable rationale. It serves two workflows: bootstrapping new
+projects and upgrading existing repositories' quality gates. Both adoption
+checklists live in [README](../README.md). Keep `AGENTS.md` short and operational.
 
-This document is intended to be copied into repositories created from the
-template. Maintainer-only plans for this template repository belong in
+This document is reusable in both workflows; adapt paths and selected runtime
+layers to the target project. Maintainer-only plans for this template belong in
 `docs/meta/`; start with `docs/meta/ROADMAP.md` for template-repository
 planning.
 
@@ -24,7 +25,70 @@ When a practice becomes stable enough to reuse across projects, document it here
 by domain. If it needs exact commands for agents, include the commands here and
 link to this document from `AGENTS.md`.
 
+## Adopting Into An Existing Repository
+
+Use this procedure when an agent imports QA practices into an established
+project. For a new project, use the separate [bootstrap checklist](../README.md).
+Complete the checklist in the target's adoption PR; it need not become a
+permanent report or decision history.
+
+Use a committed template revision and its matching documentation as the source.
+For later refreshes, compare only the adopted capabilities against the new
+revision; do not overwrite the target configuration wholesale.
+
+- [ ] Inspect the target's supported Python/runtime versions, source/test roots,
+  packaging and entrypoints, local commands, CI triggers, required checks,
+  deployment/release ownership and current failures before editing.
+- [ ] Select missing capabilities by their purpose. Keep equivalent or stronger
+  existing tools. Explain applicability exclusions, such as no Docker runtime;
+  an existing failure is not a reason to omit enforcement.
+- [ ] Map each selected gate to its complete dependency set: tool versions,
+  configuration, helper scripts, tests, Just recipe and CI invocation. Copying
+  a single visible script is not enough if it imports other QA helpers.
+- [ ] Merge selected QA settings without replacing the target's identity,
+  license, version/history, build backend, runtime dependencies, entrypoints or
+  supported Python range. QA adoption does not authorize a runtime or package
+  manager migration. Choose compatible tool versions or explicitly separate
+  the QA interpreter from the supported product runtime.
+- [ ] Adapt all source paths: Ruff/Pyright, coverage/CRAP, mutation, Deptry,
+  Vulture, suppressions, clone checking, package smoke and workflow filters.
+  Build import-linter/Tach contracts from actual target boundaries. The sample
+  service's architecture and CLI health command are examples, not prescriptions.
+- [ ] Preserve stricter typing/lint/architecture rules and reviewed target
+  exceptions. Do not copy another project's suppression budgets, clone
+  acceptances, mutation exclusions or debt baselines without individual review.
+  See [clone adoption](CODE_CLONES.md#adoption-and-review).
+- [ ] Resolve initial findings. If inherited debt needs a transition, implement
+  and test its bounded non-regression policy and define an exit condition. The
+  shipped CRAP script has absolute thresholds; this template does not provide a
+  generic ratchet switch. Describe unresolved work honestly, rather than call a
+  temporarily weakened or skipped gate fully adopted.
+- [ ] Run focused checks during migration, then the target's complete applicable
+  gate. Verify a temporary representative violation is rejected, remove the
+  probe, and verify the clean state. Confirm both the intended source scope and
+  the installed artifact/runtime behavior; template demo tests are insufficient.
+- [ ] Confirm target CI invokes the same local recipes, triggers for adopted
+  policy changes and produces its required merge signal. Retain suitable
+  schedules, caching and resource limits rather than blindly adding new jobs.
+- [ ] Inspect existing GitHub restrictions and active security/release setup
+  before changing them. Do not replay the bootstrap command block wholesale:
+  it can broaden action permissions or replace working CodeQL setup. Change
+  only prerequisites for adopted capabilities, preserve stronger protection,
+  read settings back and wait for relevant successful workflow runs.
+- [ ] Update the target's compact agent instructions and links, document any
+  scoped transition debt, and clean task-owned probes and temporary resources.
+
+Adoption is complete when selected gates scan the correct target code, enforce
+their declared policy locally and in CI, and the applicable target verification
+passes. Omitted non-applicable layers and any incomplete transitional work must
+remain explicit. Do not copy the template service, template release state or
+maintainer-only `docs/meta/` merely to import QA.
+
 ## Python QA Gates
+
+The dedicated [Code Clone Detection](CODE_CLONES.md) guide covers the enforced
+clone-review policy, exception lifecycle, both adoption workflows, and optional
+manual embedding audits. `just clone-check` is included in `just check`.
 
 Local and CI verification must share the same command surface. CI should call
 `just` recipes instead of reimplementing local checks in workflow YAML.
@@ -328,7 +392,9 @@ wheel/install issues that source-tree tests can miss.
 
 ## Releases
 
-Use release-please for changelog, version bump, and GitHub Release automation.
+Use release-please for changelog, version bump, and GitHub Release automation in
+new projects. When importing QA into an established project, preserve its
+working release process unless release migration is explicitly in scope.
 PR titles and squash commit subjects must be releasable Conventional Commits
 because they are the primary release input. Python projects should use
 `release-type: python` so release PRs bump `pyproject.toml`, not only

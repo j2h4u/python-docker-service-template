@@ -1,7 +1,10 @@
 # Python Docker Service Template
 
-Template for Python 3.14 services that run in Docker and ship through hard
-quality gates.
+Knowledge as code for Python QA: executable quality gates with the reasoning
+and adoption instructions alongside them. Use this repository to bootstrap a
+new project or upgrade the QA chain in an existing project. The tiny service is
+a wiring smoke for the template, not a product codebase. Docker is optional in
+the resulting project.
 
 ## Requirements
 
@@ -33,6 +36,8 @@ so later agents can see what was already adapted.
   not the generated project.
 - [ ] Review `tach.toml` and import-linter contracts after the first real
   modules appear.
+- [ ] Adapt clone source roots and review inherited clone exceptions using
+  [Code Clone Detection](docs/CODE_CLONES.md#adoption-and-review).
 - [ ] Keep `just mutation-check` available, then decide when it becomes a
   required slow gate after real domain behavior and focused unit tests exist.
 - [ ] Run `uv lock`, then `just verify`.
@@ -43,6 +48,31 @@ so later agents can see what was already adapted.
 - [ ] Confirm GitHub Actions may create pull requests, then approve the first
   release-please PR workflow run if GitHub asks for write-user approval.
 - [ ] Keep `AGENTS.md` intact unless the gate policy changes deliberately.
+
+## Upgrade An Existing Project
+
+Agents should complete this checklist in the target repository and record what
+was adopted. Preserve the project's product code, release history and deployment.
+Follow the canonical [existing-project adoption procedure](docs/BEST_PRACTICES.md#adopting-into-an-existing-repository)
+for scope mapping, configuration conflicts, inherited debt and acceptance checks.
+
+- [ ] Compare the current gates with [Best Practices](docs/BEST_PRACTICES.md)
+  and select the missing capabilities.
+- [ ] Merge the relevant `pyproject.toml` settings and dev dependencies; adapt
+  source paths, architecture contracts and entrypoints to the target project.
+  Regenerate its lockfile with `uv`; do not replace it with the template lockfile.
+- [ ] Copy the required QA scripts and merge their Just recipes and CI calls.
+  Keep local and CI commands aligned and preserve any stronger existing gates.
+- [ ] Adopt reusable documentation and its links. Do not copy the example
+  service, template release state, or `docs/meta/` into the target project.
+- [ ] For clone checking, follow the dedicated
+  [adoption procedure](docs/CODE_CLONES.md#adoption-and-review); review all
+  initial findings and do not import another repository's exceptions blindly.
+- [ ] Resolve inherited failures deliberately. Use brownfield ratchets only
+  where justified by the [QA policy](docs/BEST_PRACTICES.md#python-qa-gates),
+  rather than weakening new-code rules.
+- [ ] Verify adopted gates locally and through the target project's CI, then
+  check repository-level protection/security settings when those were changed.
 
 ## Gates
 
@@ -60,7 +90,8 @@ default local or CI contract.
 The static gate includes Ruff, preview complexity/refactor checks, production
 print checks, lockfile sync, basedpyright, import-linter, Tach module
 boundaries, actionlint, deptry, suppression-budget checks, compile checks,
-supply-chain pin checks, Vulture over source, scripts, and tests, and a
+supply-chain pin checks, Vulture over source, scripts, and tests, clone review
+enforcement over production and QA scripts, and a
 packaging smoke test that builds and installs the wheel. Pytest runs in strict
 mode.
 
@@ -71,6 +102,8 @@ just check
 just crap-check
 just unit
 just deps-audit
+just clone-check
+just clone-audit
 just mutation-check
 just docker-check
 just docker-build
@@ -94,6 +127,8 @@ from an audit command to a required quality gate.
 
 ## Documentation
 
+- [Code Clone Detection](docs/CODE_CLONES.md): production gates, reviewed
+  exceptions, adoption and manual embedding audits.
 - [Best Practices](docs/BEST_PRACTICES.md): reusable QA, runtime, dependency,
   Docker, and GitHub security practices for repositories created from this
   template.
@@ -141,7 +176,7 @@ block to the PR body; the block is required because the squash commit has only
 one title. Commit body bullets inside release input must be indented rather than
 starting at column zero. Run `just release-check title="..." body=pr-body.md`
 before pushing a PR that should feed the changelog. Release-please owns
-`CHANGELOG.md`; review its generated release PR before merging it.
+[CHANGELOG.md](CHANGELOG.md); review its generated release PR before merging it.
 
 ## License
 

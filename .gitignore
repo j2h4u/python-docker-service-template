@@ -27,6 +27,8 @@ dist/
 
 # Coverage and QA reports
 reports/*.tmp.json
+.clone-reports/
+.clone-audit/
 
 # Logs and local output
 *.log
