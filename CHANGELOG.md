@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/j2h4u/python-docker-service-template/compare/v0.3.1...v0.4.0) (2026-10-28)
+
+
+### Features
+
+* **qa:** strengthen static and artifact gates ([#49](https://github.com/j2h4u/python-docker-service-template/issues/49)) ([66a7740](https://github.com/j2h4u/python-docker-service-template/commit/66a7740659a4adcbe06e43cc44115a6af8d85216))
+
 ## [0.3.1](https://github.com/j2h4u/python-docker-service-template/compare/v0.3.0...v0.3.1) (2026-10-28)
 
 
