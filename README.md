@@ -143,7 +143,7 @@ This repository is a template, so its own mutation score is only a wiring smoke.
 Generated projects may retain the recipe, remove template-specific exclusions,
 and consider making it required once real domain behavior and focused tests
 justify the added cost. See
-[Best Practices](docs/BEST_PRACTICES.md) for when to promote mutation testing
+[Mutation Testing](docs/MUTATION_TESTING.md) for when to promote mutation testing
 from an audit command to a required quality gate.
 
 ## Documentation

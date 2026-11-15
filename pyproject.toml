@@ -160,7 +160,22 @@ skip_covered = true
 source_paths = ["src/template_service"]
 also_copy = ["scripts/"]
 pytest_add_cli_args_test_selection = ["tests/", "-m", "not integration and not slow"]
-pytest_add_cli_args = ["-q", "-p", "no:tach"]
+pytest_add_cli_args = [
+    "-q",
+    "-p",
+    "no:tach",
+    # Репо-мета-тесты сканируют реальные исходники и не имеют смысла внутри
+    # instrumented-дерева mutants/ (тысячи mutmut-аннотаций).
+    "--ignore=tests/test_quality_gates.py",
+    "--ignore=tests/test_clone_acceptances.py",
+    "--ignore=tests/test_clone_audit.py",
+    "--ignore=tests/test_clone_tools.py",
+    "--ignore=tests/test_crap_local_classes.py",
+    "--ignore=tests/test_release_recipe.py",
+    "--ignore=tests/test_runtime_smoke.py",
+    "--ignore=tests/test_validate_pr_title.py",
+    "--ignore=tests/test_validate_release_notes.py",
+]
 on_dependency_change = "rerun"
 
 [tool.importlinter]
