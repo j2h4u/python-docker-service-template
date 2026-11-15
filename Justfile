@@ -119,11 +119,11 @@ crap-check:
     uv run pytest -m "not integration and not slow" --cov=src/template_service --cov-report=json:"$coverage_file"; \
     uv run python -m scripts.crap_gate --coverage "$coverage_file" --src src/template_service --threshold 30 --max-complexity 10
 
-# Slow mutation-testing gate for test-suite strength.
+# Slow mutation-testing gate for test-suite strength, at idle CPU priority.
 mutation-check children="4":
     #!/usr/bin/env bash
     set -euo pipefail
-    uv run mutmut run --max-children {{children}}
+    nice -n 19 uv run mutmut run --max-children {{children}}
     uv run mutmut export-cicd-stats
     uv run python -m scripts.check_mutation_gate mutants/mutmut-cicd-stats.json
 

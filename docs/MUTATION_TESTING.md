@@ -71,6 +71,14 @@ they fail without proving anything about mutants. Excluding them loses no
 mutation signal, because they test the repository tooling, not production
 behavior.
 
+## CPU priority
+
+Mutation runs are long and CPU-bound. Run them at the lowest scheduler
+priority (`nice -n 19`) so they take idle CPU freely but immediately
+yield when production workloads or interactive processes need the
+cores. The Justfile recipes already apply this; keep it when adapting
+them.
+
 ## Cache and upgrades
 
 The `mutants/` cache is not pruned when project files are deleted or renamed;
