@@ -123,7 +123,7 @@ crap-check:
 mutation-check children="4":
     #!/usr/bin/env bash
     set -euo pipefail
-    nice -n 19 uv run mutmut run --max-children {{children}}
+    nice -n 19 ionice -c 3 uv run mutmut run --max-children {{children}}
     uv run mutmut export-cicd-stats
     uv run python -m scripts.check_mutation_gate mutants/mutmut-cicd-stats.json
 
