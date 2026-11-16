@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.1](https://github.com/j2h4u/python-docker-service-template/compare/v0.4.0...v0.4.1) (2026-11-16)
+
+
+### Maintenance
+
+* **clones:** migrate detector contract to pyscn 1.33.2 + jscpd 5.4.3 ([77cc35a](https://github.com/j2h4u/python-docker-service-template/commit/77cc35a7c2d27e2bbbbe1be1e4a8f0f1310a29ec))
+* sync from mcp-2gis — title limit, double-scope, tests ([#59](https://github.com/j2h4u/python-docker-service-template/issues/59)) ([964a2cd](https://github.com/j2h4u/python-docker-service-template/commit/964a2cda7955ccfcbf18e22165d6fca1b9c2ed9d))
+
+
+### CI
+
+* **deps-dev:** bump actionlint-py from 1.7.12.24 to 1.7.12.25 ([#37](https://github.com/j2h4u/python-docker-service-template/issues/37)) ([2647446](https://github.com/j2h4u/python-docker-service-template/commit/2647446aa36729a72ad077877b02ddcd2374a0ed))
+* **deps:** bump python ([165fd29](https://github.com/j2h4u/python-docker-service-template/commit/165fd296afa15f125fa19071d839292d56f5b0e1))
+* **deps:** bump python to 3.15-slim in the docker-images group ([#58](https://github.com/j2h4u/python-docker-service-template/issues/58)) ([165fd29](https://github.com/j2h4u/python-docker-service-template/commit/165fd296afa15f125fa19071d839292d56f5b0e1))
+* **deps:** bump the github-actions group across 1 directory with 5 updates ([10a884e](https://github.com/j2h4u/python-docker-service-template/commit/10a884e07beaaadbd58b40ca33d62bc2f957b096))
+* **deps:** bump the github-actions group with 5 updates ([#42](https://github.com/j2h4u/python-docker-service-template/issues/42)) ([10a884e](https://github.com/j2h4u/python-docker-service-template/commit/10a884e07beaaadbd58b40ca33d62bc2f957b096))
+* **deps:** bump the python-minor-patch group with 9 updates ([77cc35a](https://github.com/j2h4u/python-docker-service-template/commit/77cc35a7c2d27e2bbbbe1be1e4a8f0f1310a29ec))
+
+
+### Documentation
+
+* document idle-CPU priority for mutation runs ([1de78eb](https://github.com/j2h4u/python-docker-service-template/commit/1de78ebeb3626660a69557d5f2b0eb84ed705c86))
+* document idle-CPU priority for mutation runs ([2d5e1ed](https://github.com/j2h4u/python-docker-service-template/commit/2d5e1edf13c9f2febf1dad99fed1ad53a7ca7274))
+* extract mutation testing methodology into its own document ([31c1e92](https://github.com/j2h4u/python-docker-service-template/commit/31c1e926197eabd14b6e34009f5286d9d71e4907))
+* extract mutation testing methodology into its own document ([696ffab](https://github.com/j2h4u/python-docker-service-template/commit/696ffab77acc46d0aa395c7f50bd6fcd6f215d88))
+
 ## [0.4.0](https://github.com/j2h4u/python-docker-service-template/compare/v0.3.1...v0.4.0) (2026-10-28)
 
 
