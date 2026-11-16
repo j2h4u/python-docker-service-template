@@ -8,7 +8,7 @@
     ],
     "tools": {
       "pyscn": {
-        "version": "1.33.0",
+        "version": "1.33.2",
         "min_lines": 8,
         "min_nodes": 20,
         "max_edit_distance": 50,
@@ -43,7 +43,7 @@
         ]
       },
       "jscpd": {
-        "version": "5.4.1",
+        "version": "5.4.3",
         "minTokens": 50,
         "minLines": 5,
         "maxLines": 1000000,
@@ -65,12 +65,5 @@
       }
     }
   },
-  "accepted": [
-    {
-      "detector": "jscpd",
-      "identity": "2c842afb2dbdd08ebc40f6d478c843383fbee955acc66e103a3b41644f383f0a",
-      "count": 1,
-      "reason": "The suppression-policy TOML table guard and CRAP coverage JSON object guard validate independent formats with different diagnostic and exception contracts. These seven-line type checks intentionally remain local so changing one gate's input handling does not couple the other gate to it."
-    }
-  ]
+  "accepted": []
 }
