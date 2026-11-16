@@ -23,13 +23,24 @@ RELEASABLE_TYPES = frozenset(
     }
 )
 
-TITLE_PATTERN = re.compile(r"^(?P<type>[a-z]+)(?:\([a-z0-9][a-z0-9._/-]*\))?(?P<breaking>!)?: (?P<description>\S.*)$")
+TITLE_PATTERN = re.compile(
+    r"^(?P<type>[a-z]+)"
+    r"(?:\([a-z0-9][a-z0-9._/-]*\))?"
+    r"(?P<breaking>!)?"
+    r"(?:\([a-z0-9][a-z0-9._/-]*\))?"
+    r": (?P<description>\S.*)$"
+)
+
+_MAX_TITLE_LEN = 72
 
 
 def validate_pr_title(title: str) -> tuple[bool, str]:
     normalized = title.strip()
     if not normalized:
         return False, "PR title is empty."
+
+    if len(normalized) > _MAX_TITLE_LEN:
+        return False, f"PR title longer than {_MAX_TITLE_LEN} characters ({len(normalized)})."
 
     match = TITLE_PATTERN.fullmatch(normalized)
     if match is None:
