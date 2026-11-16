@@ -27,3 +27,22 @@ def test_rejects_empty_description() -> None:
 
     assert not ok
     assert "must look like" in message
+
+
+def test_accepts_dependabot_double_scope() -> None:
+    ok, message = validate_pr_title("chore(deps)(github-actions): bump the group with 2 updates")
+
+    assert ok, message
+
+
+def test_rejects_overlong_title() -> None:
+    ok, message = validate_pr_title(f"fix: {'x' * 80}")
+
+    assert not ok
+    assert "longer than 72 characters" in message
+
+
+def test_accepts_release_please_title() -> None:
+    ok, message = validate_pr_title("chore(main): release 1.2.3")
+
+    assert ok, message
