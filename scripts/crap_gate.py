@@ -1,13 +1,16 @@
 import argparse
+import ast
 import json
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, TypedDict, TypeGuard, cast
+from typing import Protocol, TypedDict, cast
 
-from radon.complexity import cc_visit
+from radon.complexity import cc_visit_ast
 
 DEFAULT_THRESHOLD = 30.0
+DEFAULT_MAX_COMPLEXITY = 10
 DEFAULT_SOURCE_ROOT = Path("src/template_service")
 
 
@@ -35,20 +38,11 @@ class _RadonBlock(Protocol):
     complexity: int
 
 
-class _RadonFunctionBlock(_RadonBlock, Protocol):
-    closures: Sequence[_RadonFunctionBlock]
-    is_method: bool
-
-
-class _RadonClassBlock(_RadonBlock, Protocol):
-    inner_classes: Sequence[_RadonClassBlock]
-    methods: Sequence[_RadonFunctionBlock]
-
-
 class _GateArgs(Protocol):
     coverage: Path
     src: Path
     threshold: float
+    max_complexity: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,8 +54,8 @@ class FunctionMetric:
     crap: float
 
 
-RadonVisit = Callable[[str], Sequence[_RadonBlock]]
-_CC_VISIT: RadonVisit = cast(RadonVisit, cc_visit)
+RadonVisit = Callable[[ast.AST], Sequence[_RadonBlock]]
+_CC_VISIT: RadonVisit = cast(RadonVisit, cc_visit_ast)
 
 
 def _round_metric(value: float) -> float:
@@ -86,39 +80,42 @@ def _expect_int(value: object, context: str) -> int:
     return value
 
 
-def _is_class_block(block: _RadonBlock) -> TypeGuard[_RadonClassBlock]:
-    return hasattr(block, "methods") and hasattr(block, "inner_classes")
+type _FunctionNode = ast.FunctionDef | ast.AsyncFunctionDef
 
 
-def _qualname_from_block(block: _RadonBlock, prefix: tuple[str, ...] = ()) -> list[tuple[str, _RadonBlock]]:
-    if _is_class_block(block):
-        return _class_member_qualnames(block, prefix)
-
-    function_block = cast(_RadonFunctionBlock, block)
-    if not prefix and function_block.is_method:
-        return []
-    qualname = ".".join((*prefix, function_block.name))
-    items: list[tuple[str, _RadonBlock]] = [(qualname, function_block)]
-    for closure in function_block.closures:
-        items.extend(_qualname_from_block(closure, (*prefix, function_block.name)))
+def _function_blocks(node: ast.AST, prefix: tuple[str, ...] = ()) -> list[tuple[str, _FunctionNode, _RadonBlock]]:
+    items: list[tuple[str, _FunctionNode, _RadonBlock]] = []
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        prefix = (*prefix, node.name)
+        if not isinstance(node, ast.ClassDef):
+            # Radon's enclosing-function visitor drops local classes; visit each function directly.
+            items.append((".".join(prefix), node, _CC_VISIT(node)[0]))
+    for child in ast.iter_child_nodes(node):
+        items.extend(_function_blocks(child, prefix))
     return items
 
 
-def _class_member_qualnames(block: _RadonClassBlock, prefix: tuple[str, ...]) -> list[tuple[str, _RadonBlock]]:
-    class_prefix = (*prefix, block.name)
-    items: list[tuple[str, _RadonBlock]] = []
-    for inner_class in block.inner_classes:
-        items.extend(_qualname_from_block(inner_class, class_prefix))
-    for method in block.methods:
-        items.extend(_qualname_from_block(method, class_prefix))
-    return items
+def _coverage_lines(file_data: _CoverageFileEntry, field: str) -> set[int]:
+    value = file_data.get(field)
+    if not isinstance(value, list):
+        raise ValueError(f"coverage data has no {field} array for colliding function names")
+    return {_expect_int(line, f"coverage {field} contains an invalid line") for line in value}
 
 
-def _qualnames_from_blocks(blocks: Sequence[_RadonBlock]) -> list[tuple[str, _RadonBlock]]:
-    items: list[tuple[str, _RadonBlock]] = []
-    for block in blocks:
-        items.extend(_qualname_from_block(block))
-    return items
+def _body_lines(node: _FunctionNode) -> set[int]:
+    return set(range(node.body[0].lineno, cast(int, node.body[-1].end_lineno) + 1))
+
+
+def _positional_coverage(node: _FunctionNode, file_data: _CoverageFileEntry) -> _CoverageFunctionEntry:
+    lines = _body_lines(node)
+    # Nested bodies belong to their own functions, including methods of local classes.
+    for child in ast.walk(node):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child is not node:
+            lines -= _body_lines(child)
+    lines -= _coverage_lines(file_data, "excluded_lines")
+    executed = lines & _coverage_lines(file_data, "executed_lines")
+    statements = executed | (lines & _coverage_lines(file_data, "missing_lines"))
+    return {"summary": {"covered_lines": len(executed), "num_statements": len(statements)}}
 
 
 def _load_coverage_report(path: Path) -> _CoverageReport:
@@ -165,14 +162,23 @@ def _function_metrics_from_file(
     functions = _expect_dict(file_data.get("functions"), f"coverage data for {relative_path} has no functions object")
     metrics: list[FunctionMetric] = []
     missing: list[str] = []
-    for qualname, block in _qualnames_from_blocks(_CC_VISIT(source_text)):
+    blocks = _function_blocks(ast.parse(source_text))
+    counts = Counter(qualname for qualname, _, _ in blocks)
+    for qualname, node, block in blocks:
         coverage_entry = functions.get(qualname)
         if coverage_entry is None:
             missing.append(f"{relative_path}::{qualname}")
             continue
+        if counts[qualname] > 1:
+            coverage_entry = _positional_coverage(node, file_data)
         metrics.append(_metric_for_function(relative_path, qualname, block, coverage_entry))
     if missing:
         raise ValueError("coverage report is missing function metrics: " + ", ".join(missing))
+    unmatched = functions.keys() - counts.keys() - {""}
+    if unmatched:
+        raise ValueError(
+            f"coverage report has unmatched function metrics for {relative_path}: {', '.join(sorted(unmatched))}"
+        )
     return metrics
 
 
@@ -213,10 +219,13 @@ def _format_offender(metric: FunctionMetric) -> str:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Fail if any function exceeds the configured CRAP threshold.")
+    parser = argparse.ArgumentParser(description="Enforce independent Radon complexity and CRAP thresholds.")
     parser.add_argument("--coverage", type=Path, required=True, help="pytest-cov JSON report")
     parser.add_argument("--src", type=Path, default=DEFAULT_SOURCE_ROOT, help="source root to scan")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="maximum allowed CRAP per function")
+    parser.add_argument(
+        "--max-complexity", type=int, default=DEFAULT_MAX_COMPLEXITY, help="maximum allowed Radon CC per function"
+    )
     return parser
 
 
@@ -232,14 +241,22 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"CRAP gate failed: {exc}")
         return 1
-    offenders = [metric for metric in metrics if metric.crap > args.threshold]
+    offenders = [
+        metric for metric in metrics if metric.crap > args.threshold or metric.complexity > args.max_complexity
+    ]
     if offenders:
-        print(f"CRAP gate failed: {len(offenders)} function(s) exceed {args.threshold:.2f}")
+        print(
+            f"Radon CC/CRAP gate failed: {len(offenders)} function(s) exceed "
+            f"CC {args.max_complexity} or CRAP {args.threshold:.2f}"
+        )
         for metric in sorted(offenders, key=lambda item: (-item.crap, item.key))[:20]:
             print(f"  {_format_offender(metric)}")
         return 1
 
-    print(f"CRAP gate passed: {len(metrics)} function(s), threshold {args.threshold:.2f}")
+    print(
+        f"Radon CC/CRAP gate passed: {len(metrics)} function(s), "
+        f"CC <= {args.max_complexity}, CRAP <= {args.threshold:.2f}"
+    )
     return 0
 
 

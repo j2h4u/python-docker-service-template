@@ -1,11 +1,12 @@
 # Best Practices
 
-This repository is both a project template and a store of preferred QA,
-runtime, and repository-operating practices. Keep durable rationale here. Keep
-`AGENTS.md` short and operational.
+This repository is knowledge as code: executable QA, runtime and repository
+practices with durable rationale. It serves two workflows: bootstrapping new
+projects and upgrading existing repositories' quality gates. Both adoption
+checklists live in [README](../README.md). Keep `AGENTS.md` short and operational.
 
-This document is intended to be copied into repositories created from the
-template. Maintainer-only plans for this template repository belong in
+This document is reusable in both workflows; adapt paths and selected runtime
+layers to the target project. Maintainer-only plans for this template belong in
 `docs/meta/`; start with `docs/meta/ROADMAP.md` for template-repository
 planning.
 
@@ -24,27 +25,98 @@ When a practice becomes stable enough to reuse across projects, document it here
 by domain. If it needs exact commands for agents, include the commands here and
 link to this document from `AGENTS.md`.
 
+## Adopting Into An Existing Repository
+
+Use this procedure when an agent imports QA practices into an established
+project. For a new project, use the separate [bootstrap checklist](../README.md).
+Complete the checklist in the target's adoption PR; it need not become a
+permanent report or decision history.
+
+Use a committed template revision and its matching documentation as the source.
+For later refreshes, compare only the adopted capabilities against the new
+revision; do not overwrite the target configuration wholesale.
+
+- [ ] Inspect the target's supported Python/runtime versions, source/test roots,
+  packaging and entrypoints, local commands, CI triggers, required checks,
+  deployment/release ownership and current failures before editing.
+- [ ] Select missing capabilities by their purpose. Keep equivalent or stronger
+  existing tools. Explain applicability exclusions, such as no Docker runtime;
+  an existing failure is not a reason to omit enforcement.
+- [ ] Map each selected gate to its complete dependency set: tool versions,
+  configuration, helper scripts, tests, Just recipe and CI invocation. Copying
+  a single visible script is not enough if it imports other QA helpers.
+- [ ] Merge selected QA settings without replacing the target's identity,
+  license, version/history, build backend, runtime dependencies, entrypoints or
+  supported Python range. QA adoption does not authorize a runtime or package
+  manager migration. Choose compatible tool versions or explicitly separate
+  the QA interpreter from the supported product runtime.
+- [ ] Adapt all source paths: Ruff/Pyright, coverage/CRAP, mutation, Deptry,
+  Vulture, suppressions, clone checking, package smoke and workflow filters.
+  Build import-linter/Tach contracts from actual target boundaries. The sample
+  service's architecture and CLI health command are examples, not prescriptions.
+- [ ] Preserve stricter typing/lint/architecture rules and reviewed target
+  exceptions. Do not copy another project's suppression budgets, clone
+  acceptances, mutation exclusions or debt baselines without individual review.
+  See [clone adoption](CODE_CLONES.md#adoption-and-review).
+- [ ] Resolve initial findings. If inherited debt needs a transition, implement
+  and retain only justified existing custom-gate behavior checks; define an
+  exit condition for any temporary transition. Prefer a tool's native
+  configuration validator and an explicit audit over custom duplicate
+  validation. Do not add a regression test for each finding or expand tests
+  mechanically to mirror validator behavior. The shipped CRAP script has
+  absolute thresholds; this template has no generic ratchet switch. Describe
+  unresolved work honestly rather than calling a weakened or skipped gate
+  fully adopted.
+- [ ] Run focused checks during migration, then the target's complete applicable
+  gate. Confirm intended source scope and installed artifact/runtime behavior;
+  template demo tests are insufficient.
+- [ ] Confirm target CI invokes the same local recipes, triggers for adopted
+  policy changes and produces its required merge signal. Retain suitable
+  schedules, caching and resource limits rather than blindly adding new jobs.
+- [ ] Inspect existing GitHub restrictions and active security/release setup
+  before changing them. Do not replay the bootstrap command block wholesale:
+  it can broaden action permissions or replace working CodeQL setup. Change
+  only prerequisites for adopted capabilities, preserve stronger protection,
+  read settings back and wait for relevant successful workflow runs.
+- [ ] Update the target's compact agent instructions and links, document any
+  scoped transition debt, and clean task-owned probes and temporary resources.
+
+Adoption is complete when selected gates scan the correct target code, enforce
+their declared policy locally and in CI, and the applicable target verification
+passes. Omitted non-applicable layers and any incomplete transitional work must
+remain explicit. Do not copy the template service, template release state or
+maintainer-only `docs/meta/` merely to import QA.
+
 ## Python QA Gates
+
+The dedicated [Code Clone Detection](CODE_CLONES.md) guide covers the enforced
+clone-review policy, exception lifecycle, both adoption workflows, and optional
+manual embedding audits. `just clone-check` is included in `just check`.
 
 Local and CI verification must share the same command surface. CI should call
 `just` recipes instead of reimplementing local checks in workflow YAML.
 
-- `just check` is the static gate: formatting, Ruff, preview
-  complexity/refactor checks, production print guards, types, import contracts,
-  Tach module boundaries, GitHub Actions lint, dependency hygiene, suppression
-  budgets, compile checks, dead-code checks, lockfile sync, supply-chain pin
-  checks, and packaging smoke.
-- `just crap-check` is the hard CRAP threshold gate for every function.
+- `just check` is the static gate: formatting, one Ruff pass with security and explicit
+  preview rules and per-file production-print exceptions, types, import
+  contracts, Tach module boundaries, GitHub Actions lint, dependency hygiene,
+  suppression budgets, compile checks, dead-code checks, lockfile sync,
+  supply-chain pin checks, and packaging smoke. Standalone preview-complexity
+  and print lint recipes do not need to be added to the aggregate gate.
+- `just crap-check` enforces independent Radon CC <= 10 and CRAP <= 30 limits
+  for every production function. It runs the fast unit lane with coverage once
+  and evaluates both limits from the same function metrics.
 - Coverage is measured as CRAP input, not as a standalone blocking floor.
-- `just unit` is the behavior gate.
+- `just integration` checks installed QA tools and command wiring through
+  isolated offline fixtures. It is included in `just verify` and the CI test job.
 - `just mutation-check` is the slow mutation-testing gate for test-suite
-  strength.
+  strength; it is an optional manual audit, not a default gate to copy blindly.
 - `just deps-audit` is the locked dependency vulnerability gate.
-- `just docker-build` is the runtime packaging gate and includes Dockerfile and
-  Compose validation before the image build.
-- `just runtime-smoke` is the container runtime gate: start the service, wait
-  for health, and exercise a real installed command or protocol.
-- `just verify` is the full local gate before claiming completion.
+- `just runtime-smoke` is the container runtime gate: it depends on
+  Docker/Compose validation, builds the image, starts the service, waits for
+  health, and exercises a real installed command or protocol.
+- `just verify` runs `check`, `crap-check`, `integration`, `deps-audit`, and
+  `runtime-smoke`. Do not add separate `unit` or `docker-build` steps to full
+  verification; those remain useful standalone recipes for focused checks.
 
 Do not weaken, skip, or locally suppress gates to make a change pass. If a gate
 is wrong, change the gate deliberately and explain why in the same change.
@@ -57,6 +129,32 @@ boolean expressions, comprehensions, conditional expressions, and other Python
 constructs that radon counts. When discussing or tuning CRAP, use the
 radon-based complexity value from `just crap-check` / `scripts/crap_gate.py`,
 not Ruff's C901 score.
+
+The Radon CC ceiling is independent of coverage. A fully covered function has
+CRAP equal to CC, so CRAP <= 30 alone still allows CC 30. Enforce CC <= 10 as
+well; do not compute a second function inventory or repeat covered tests to do
+so. The limits are explicit in the shared `crap-check` recipe, used locally
+and in CI.
+
+Enable Ruff's native `S` security rules in the main lint pass. Dependency audits
+and CodeQL do not replace these cheap checks for unsafe source constructs.
+Review exceptions by rule and path: pytest needs `S101` for assertions; local
+Coverage fixtures may need `S102` for controlled `exec`; reviewed argv-only QA
+subprocess adapters need `S603`, and PATH-based tool fixtures may need `S607`.
+Keep these exceptions confined to their actual owners in `pyproject.toml`.
+Do not globally ignore security rules or exempt all test/script security checks.
+Re-review argv sources if an exempt adapter starts accepting untrusted input.
+
+Production Basedpyright rejects Unknown variables, arguments, members,
+parameters and lambda types, plus missing generic type arguments. This closes
+the untyped-data escape path that banning `Any` alone does not cover. The
+`src` execution environment applies those diagnostics within the existing
+checker run; scripts and fixtures retain the root configuration. Adapt that
+environment's root for flat or differently named source layouts during
+[adoption](#adopting-into-an-existing-repository). New projects need no diagnostic
+baseline. For vendor-heavy or brownfield code, first review actual findings and
+type external boundaries with useful stubs or protocols; do not conceal Unknown
+values behind casts or copy another project's baseline or broad exceptions.
 
 Prefer absolute gates over baseline ratchets in new repositories. Ratchets are
 useful for paying down inherited debt, but they can also preserve debt while
@@ -73,11 +171,12 @@ file-level Ruff suppression because suppressions are policy exceptions, not
 normal development tools. If a mature project needs exceptions, raise the
 budget deliberately and explain the reason in the same change.
 
-When the project has domain contracts, add one semantic invariant gate instead
-of relying only on generic linters. Examples include OpenAPI contract checks,
-schema validation, config validation, import-layer policy, or a small
-repository-specific quality policy. Wire that gate into `just check` or
-`just unit` so local and CI behavior stay identical.
+When the project has domain contracts, prefer its native schema/configuration
+validators and an explicit audit. Keep an existing justified custom behavior
+gate when it catches a real invariant that native tools do not express; avoid
+duplicating validator or detector behavior, and do not add a test for every
+individual finding. Wire a necessary custom gate through the shared local/CI
+recipe.
 
 As the project gains real behavior, add narrow project-specific boundary checks
 instead of broad heuristic lint. Good examples are import-boundary scripts,
@@ -100,23 +199,27 @@ add `visibility`, `cannot_depend_on`, and `[[interfaces]]` rules for public
 facades and reviewed ownership boundaries. Do not use deprecated edges as a
 default; reserve them for named brownfield cleanup work with a removal plan.
 
-Use pytest markers from the start:
+Use pytest markers to keep the existing fast and offline lanes distinct:
 
 - unmarked tests belong to the fast default unit lane;
 - `integration` marks tests that cross process, service, container, or network
   boundaries;
 - `slow` marks tests that are too slow for the default unit gate.
 
-Slow and integration tests can move to separate workflows as the project grows,
-but the markers should exist before the suite needs them.
+The template's offline integration tests run in the normal full local gate and
+the existing CI test job. They require no provider credentials or external
+services. Keep existing justified behavior checks when QA wiring changes; do
+not expand the suite mechanically for each reported finding.
+Slow or live-service integration tests need an explicit separate lane as the
+project grows; do not silently drop offline checks when introducing that lane.
 
 When slow tests become expensive enough to hide signal in the fast PR lane, move
-them to an explicit scheduled or manual slow workflow. Keep the fast `unit`,
-`check`, and `crap-check` gates blocking on ordinary PRs; use the slow lane for
-backend matrices, statistical tests, live integrations, and soak checks.
-`crap-check` should collect coverage from the same fast lane, not from slow or
-live tests. If a function only has integration coverage, add focused unit tests
-or deliberately move that function behind a separate maturity-stage gate.
+them to an explicit scheduled or manual slow workflow. Keep `check`,
+`crap-check`, and offline integration gates blocking on ordinary PRs; use the
+slow lane for backend matrices, statistical tests, live integrations, and soak
+checks. `crap-check` should collect coverage from the same fast lane, not from
+slow or live tests. Add focused tests only when a concrete behavior or risk
+requires them; do not mechanically expand tests to duplicate gate validation.
 Docs-only changes should not spend CI on runtime-affecting gates. On protected
 branches, keep a lightweight required aggregate check for pull requests so
 docs-only PRs still have an explicit merge signal while heavy jobs are skipped.
@@ -127,55 +230,17 @@ Dependabot should open grouped weekly PRs, CodeQL can run on code changes plus a
 monthly schedule, and lockfile vulnerability scanners such as OSV can run
 monthly or manually.
 
-Use mutation testing to audit whether tests actually detect behavioral changes,
-not just whether code was executed. The template uses `mutmut` as the default
-tool because it is current on modern Python, works naturally with pytest, keeps
-incremental state in `mutants/`, and can run with bounded parallelism through
-`just mutation-check`. The recipe exports mutmut's CI/CD JSON statistics and
-fails on survived mutants, mutants with no tests, suspicious results, timeouts,
-interrupted runs, and segfaults. The default config re-runs mutants when
-dependency or config files change so a gate does not pass on stale cached
-results. Keep mutation testing in the slow lane: run it before releases, for
-mature modules, after important test refactors, and during QA audits. Do not
-wire it into `just check`; mutation testing is intentionally more expensive than
-static analysis and CRAP.
-
-Configure mutation targets narrowly. Start with production source paths, exclude
-slow and integration tests from the mutmut selection command, and prefer adding
-focused tests for surviving mutants over raising a broad pardon budget. Mutmut
-can filter invalid mutants with mypy or pyrefly, but not pyright; in this
-template, rely on the normal basedpyright gate separately instead of hiding
-mutants through a type-check filter.
-
-Disable test-selection plugins inside mutation testing unless they are
-explicitly mutation-aware. This template disables Tach for mutmut's pytest
-invocation because Tach's ordinary affected-test optimization can hide the very
-tests mutmut needs for mutant-to-test mapping.
-
-For larger codebases, consider mutmut's stack-depth limiting only after the
-first useful runs. A low `max_stack_depth` can make mutation testing faster and
-more local, but in CLI-heavy or framework-heavy code it can also disconnect
-valid tests from code they exercise.
-
-Do not treat this template repository's own mutation score as a meaningful
-baseline. The template intentionally has almost no domain behavior; it only
-proves that the tool is installed, configured, and callable through `just`. Its
-packaging-version helper is excluded from mutation because it is template
-boilerplate rather than domain behavior. After creating a real project, keep the
-recipe, remove template-specific exclusions, narrow `source_paths` to production
-modules, and enable the hard mutation gate by default with zero surviving
-mutants allowed. A baseline or ratchet is not a template default; use one only
-temporarily while migrating an existing project with accumulated mutation debt.
-Make it explicit, forbid new survivors, and reduce it monotonically to zero.
-Surviving mutants are usually prompts to add better assertions. Timeouts should
-be investigated separately: they can mean the mutant created an infinite wait,
-but they can also reveal that the selected test path is too broad or too slow
-for a useful mutation gate.
+Mutation testing is a separate slow audit lane with its own methodology,
+runner configuration, and operational rules: see
+[Mutation Testing](MUTATION_TESTING.md) for scope, baselines, timeouts, and
+the mutmut >= 3.8.1 inside-tree operational notes.
 
 ## Python Environment And Dependencies
 
-Use `uv` only. Keep `uv.lock` current. Outside Docker, use hardlink mode so
-virtual environments are fast and disk-efficient:
+This template uses `uv`; keep its `uv.lock` current. When adopting QA into an
+existing project, retain its package manager (including Poetry or PDM) unless
+migration is explicitly in scope. Outside Docker, `uv` projects should use
+hardlink mode so virtual environments are fast and disk-efficient:
 
 ```bash
 export UV_LINK_MODE=hardlink
@@ -190,7 +255,8 @@ rm -rf .venv
 UV_LINK_MODE=hardlink uv sync --locked
 ```
 
-When dependency constraints change, update the lockfile first, then sync:
+For `uv` projects, when dependency constraints change, update the lockfile
+first, then sync:
 
 ```bash
 uv lock
@@ -200,7 +266,7 @@ UV_LINK_MODE=hardlink uv sync --locked
 Inside Docker, use copy mode for the project environment. Container layers and
 host cache mounts do not need the same hardlink behavior as local development.
 
-`uv.lock` must be checked explicitly:
+For `uv` projects, check `uv.lock` explicitly:
 
 ```bash
 uv lock --check
@@ -269,9 +335,13 @@ container equivalent of a strict allowlist, not as a growing blacklist of local
 artifacts.
 
 Docker is a default layer in this template, not a requirement for every project
-created from it. For non-Docker services, remove the Docker files, Just recipes,
-and CI jobs in one deliberate template adaptation, while keeping the Python QA,
-dependency, security, and release gates.
+created from it. For non-Docker services, remove `Dockerfile`, Compose and
+`.dockerignore` files, Docker Just recipes, `tests/test_runtime_smoke.py`,
+Docker from README requirements and agent instructions, Docker-only
+dependencies in `verify`, Docker CI jobs and their entries in the aggregate
+`ci` job's `needs`, and Docker-only requirements in one deliberate adaptation.
+Keep Python QA, dependency, security and release gates, and retain or add the
+runtime smoke appropriate to the service.
 
 Preferred pattern:
 
@@ -310,6 +380,11 @@ project, waits for health, and exercises one real interface. The first smoke can
 be tiny, such as an installed CLI `health` command; replace it with a
 domain-level protocol smoke when the service grows a real interface.
 
+Give every smoke invocation a unique Compose project and use Compose-generated
+image names rather than a shared custom tag. On exit, remove only that project's
+containers, network, volumes and local images. Normal `docker-build` should use
+the same Compose naming as `docker-up`.
+
 For protocol services, runtime smoke should exercise the protocol surface, not
 only process liveness. For example, list MCP tools over the real transport, call
 a harmless read-only endpoint, or run a redacted stdio smoke. Allocate temporary
@@ -317,18 +392,37 @@ ports and isolated runtime directories in CI so the smoke cannot collide with a
 developer service or persistent data.
 
 For non-Docker services, replace Docker runtime smoke with the equivalent
-deployment smoke. Examples include `systemd-analyze verify` against a synthetic
-root for unit files, an installer dry-run, a one-shot CLI health command, or a
-read-only protocol check against a temporary runtime directory.
+deployment smoke, such as `systemd-analyze verify`, an installer dry-run, a
+one-shot CLI health command, or a read-only protocol check against a temporary
+runtime directory.
 
 Python packages should also have a packaging smoke gate. Build the wheel,
-install it into an isolated virtual environment, and run the installed
-entrypoint. This catches missing package data, broken script entrypoints, and
-wheel/install issues that source-tree tests can miss.
+install it into an isolated virtual environment using the locked runtime
+constraints, and run the installed entrypoint from an empty directory outside
+the checkout. Clear `PYTHONPATH`, `PYTHONHOME` and `VIRTUAL_ENV` for those smoke
+commands and set `PYTHONSAFEPATH=1`. Otherwise checkout imports or local resources
+can make an incomplete wheel appear healthy. Reuse the existing wheel/install;
+isolation must not introduce another build or test lane. This catches missing
+package data, broken script entrypoints, and wheel/install issues that
+source-tree tests can miss.
 
 ## Releases
 
-Use release-please for changelog, version bump, and GitHub Release automation.
+Use release-please for changelog, version bump and release PR preparation in
+new projects. Publish the merged release through native GitHub tooling only
+after checking successful CI for its exact commit, not merely an earlier green
+run on a moving branch. This template scans pending merged release PRs, checks
+their latest `CI` push run on `main`, reads the version at that immutable SHA,
+and calls `gh release create --target SHA`. Both automatic and manual workflow
+runs use this boundary. GitHub generates release notes; release-please remains
+the changelog owner. A conflicting tag or unpublished draft is an error, never
+a reason to move a tag or silently claim publication. Successful publication
+transitions the normal `autorelease: pending` label to `autorelease: tagged`.
+Publication-blocked warnings must be resolved before claiming a release.
+
+Do not clone or monkeypatch upstream release internals to implement this policy.
+When importing QA into an established project, preserve its
+working release process unless release migration is explicitly in scope.
 PR titles and squash commit subjects must be releasable Conventional Commits
 because they are the primary release input. Python projects should use
 `release-type: python` so release PRs bump `pyproject.toml`, not only
@@ -340,16 +434,17 @@ dates, comparison links, and release PR updates.
 Validate release input before CI has to reject it:
 
 ```bash
-just release-check title="feat(api): add import endpoint" body=pr-body.md
+just release-check "feat(api): add import endpoint" pr-body.md
 ```
 
 The release-note override is a `BEGIN_COMMIT_OVERRIDE` /
 `END_COMMIT_OVERRIDE` block in the PR body. Use it for every multi-commit PR
 unless the PR is an exempt automation branch. Entries in the override block
 should be Conventional Commit messages separated by blank lines. Commit subjects
-are validated individually, and body bullets in release input should be indented
-instead of starting at column zero so release-please parses the body as part of
-the intended commit message.
+are validated individually. Ordinary body bullets in both raw commits and
+overrides must be indented instead of starting at column zero. Bullets directly
+following `BREAKING CHANGE:` may remain unindented; do not insert a blank line
+between that note and its bullets. The same validator enforces both inputs.
 
 After creating a new repository from this template, decide the initial release
 state before the first implementation commit. Set `.release-please-manifest.json`
@@ -383,6 +478,8 @@ REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 
 gh api -X PUT "repos/$REPO/vulnerability-alerts" --silent
 gh api -X PUT "repos/$REPO/automated-security-fixes" --silent
+
+gh api -X PATCH "repos/$REPO" -f squash_merge_commit_title=PR_TITLE --silent
 
 gh api -X PATCH "repos/$REPO" --input - <<'JSON'
 {

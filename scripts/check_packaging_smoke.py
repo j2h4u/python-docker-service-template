@@ -18,6 +18,7 @@ def main() -> int:
         workdir = Path(tmp)
         dist_dir = workdir / "dist"
         venv_dir = workdir / "venv"
+        constraints_file = workdir / "runtime-constraints.txt"
 
         _run(["uv", "build", "--wheel", "--out-dir", str(dist_dir), "--no-build-logs", str(repo_root)])
 
@@ -31,10 +32,45 @@ def main() -> int:
         if not venv_python.is_file():
             raise RuntimeError(f"venv python not found: {venv_python}")
 
+        _run(
+            [
+                "uv",
+                "export",
+                "--locked",
+                "--no-dev",
+                "--no-emit-project",
+                "--no-emit-workspace",
+                "--no-emit-local",
+                "--no-header",
+                "--no-annotate",
+                "--no-hashes",
+                "--no-editable",
+                "--output-file",
+                str(constraints_file),
+            ],
+            cwd=repo_root,
+        )
         install_env = {**os.environ, "UV_LINK_MODE": "copy"}
-        _run(["uv", "pip", "install", "--python", str(venv_python), str(wheel_files[0])], env=install_env)
-        _run([str(executable), "--help"])
-        _run([str(executable), "health"])
+        _run(
+            [
+                "uv",
+                "pip",
+                "install",
+                "--python",
+                str(venv_python),
+                "--constraint",
+                str(constraints_file),
+                str(wheel_files[0]),
+            ],
+            env=install_env,
+        )
+        smoke_dir = workdir / "smoke"
+        smoke_dir.mkdir()
+        smoke_env = {**os.environ, "PYTHONSAFEPATH": "1"}
+        for variable in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
+            smoke_env.pop(variable, None)
+        _run([str(executable), "--help"], cwd=smoke_dir, env=smoke_env)
+        _run([str(executable), "health"], cwd=smoke_dir, env=smoke_env)
 
     print("packaging smoke passed: wheel built, installed, CLI help and health ran")
     return 0

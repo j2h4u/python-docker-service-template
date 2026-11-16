@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: python-docker-service-template:local
     restart: unless-stopped
     init: true
     mem_limit: 1g

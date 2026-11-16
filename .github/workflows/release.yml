@@ -11,61 +11,89 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 jobs:
   release-please:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
       pull-requests: write
-    outputs:
-      release-created: ${{ steps.release.outputs.release_created }}
-      tag-name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - name: Publish CI-verified release PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          function die {
+            echo "::error::${1}"
+            exit 1
+          } >&2
+
+          # Snapshot pending merges so a newer workflow event cannot lose a release.
+          declare candidates
+          candidates=$(gh pr list --state merged --base main --label 'autorelease: pending' --limit 100 \
+            --json number,mergeCommit,headRefName,isCrossRepository,mergedAt --jq '
+                sort_by(.mergedAt)[]
+                | select(.isCrossRepository == false
+                    and (.headRefName == "release-please--branches--main"
+                        or (.headRefName | startswith("release-please--branches--main--components--"))))
+                | [.number, .mergeCommit.oid] | @tsv') || die 'Cannot snapshot pending release PRs'
+
+          declare number sha ci version tag refs tag_sha release
+          while IFS=$'\t' read -r number sha; do
+            [[ -n "${number}" ]] || continue
+            [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "PR #${number} has no immutable merge SHA"
+            ci=$(gh api "repos/${GH_REPO}/actions/workflows/ci.yml/runs?event=push&branch=main&head_sha=${sha}&per_page=1" \
+              | jq --arg repo "${GH_REPO}" --arg sha "${sha}" -r '
+                  .workflow_runs[0]
+                  | if .head_sha == $sha and .head_branch == "main" and .event == "push"
+                      and .repository.full_name == $repo and .head_repository.full_name == $repo
+                    then "\(.status)/\(.conclusion)" else "missing" end') \
+              || die "Cannot read CI for PR #${number} at ${sha}"
+            if [[ "${ci}" != 'completed/success' ]]; then
+              echo "::warning::Publication blocked for PR #${number} at ${sha}: latest CI(push/main) is ${ci}"
+              continue
+            fi
+
+            version=$(gh api "repos/${GH_REPO}/contents/pyproject.toml?ref=${sha}" --jq '.content' \
+              | base64 --decode \
+              | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["project"]["version"])') \
+              || die "Cannot read immutable version for PR #${number}"
+            [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Unsupported release version: ${version}"
+            tag="v${version}"
+
+            refs=$(gh api "repos/${GH_REPO}/git/matching-refs/tags/${tag}" \
+              | jq --arg ref "refs/tags/${tag}" '[.[] | select(.ref == $ref)] | length') \
+              || die "Cannot inspect ${tag}"
+            if [[ "${refs}" != '0' ]]; then
+              tag_sha=$(gh api "repos/${GH_REPO}/commits/${tag}" --jq '.sha') || die "Cannot resolve ${tag}"
+              [[ "${tag_sha}" == "${sha}" ]] || die "${tag} already points to ${tag_sha}, expected ${sha}; refusing to move it"
+            fi
+
+            if release=$(gh release view "${tag}" --json isDraft,isPrerelease); then
+              [[ "${refs}" != '0' ]] || die "Existing release ${tag} has no tag"
+              jq --exit-status '.isDraft == false and .isPrerelease == false' <<< "${release}" >/dev/null \
+                || die "Existing ${tag} is not a published stable release"
+              echo "${tag} is already published at ${sha}"
+            else
+              gh release create "${tag}" --target "${sha}" --title "${tag}" --generate-notes \
+                || die "Cannot publish ${tag} at ${sha}"
+              tag_sha=$(gh api "repos/${GH_REPO}/commits/${tag}" --jq '.sha') || die "Cannot verify published ${tag}"
+              [[ "${tag_sha}" == "${sha}" ]] || die "Published ${tag} does not point to ${sha}"
+            fi
+            gh pr edit "${number}" --add-label 'autorelease: tagged' --remove-label 'autorelease: pending' \
+              || die "Release ${tag} exists, but PR #${number} labels need a rerun"
+          done <<< "${candidates}"
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-
-      - name: Verify release-please emitted expected outputs
-        env:
-          RELEASES_CREATED: ${{ steps.release.outputs.releases_created }}
-          PATHS_RELEASED: ${{ steps.release.outputs.paths_released }}
-          RELEASE_CREATED: ${{ steps.release.outputs.release_created }}
-          TAG_NAME: ${{ steps.release.outputs.tag_name }}
-        run: |
-          set -euo pipefail
-          fail() {
-            echo "::error::${1}"
-            echo "::error::releases_created='${RELEASES_CREATED}' paths_released='${PATHS_RELEASED}'" \
-                 "release_created='${RELEASE_CREATED}' tag_name='${TAG_NAME}'"
-            exit 1
-          }
-
-          if [ -z "${RELEASES_CREATED}" ]; then
-            fail "release-please emitted no releases_created output; its output names may have changed"
-          fi
-
-          case "${RELEASES_CREATED}" in
-            true)
-              case "${PATHS_RELEASED}" in
-                *'"."'*) ;;
-                *) fail "the root package '.' is missing from paths_released" ;;
-              esac
-              [ "${RELEASE_CREATED}" = "true" ] || fail "release_created is not true for root release"
-              [ -n "${TAG_NAME}" ] || fail "tag_name is empty for root release"
-              echo "release ${TAG_NAME} created"
-              ;;
-            false)
-              [ -z "${RELEASE_CREATED}" ] || fail "no release was created yet release_created is set"
-              echo "no release on this commit"
-              ;;
-            *)
-              fail "unexpected releases_created value"
-              ;;
-          esac
+          skip-github-release: true

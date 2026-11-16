@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-FLOATING_ACTION_REFS = {"main", "master", "trunk", "HEAD"}
 FLOATING_IMAGE_TAGS = {"latest", "stable", "edge", "main", "master"}
 QUOTED_VALUE_MIN_LENGTH = 2
 WORKFLOW_USES_PATTERN = re.compile(r"^\s*(?:-\s*)?uses:\s*(?P<value>[^#\n]+)", re.MULTILINE)
@@ -25,11 +24,17 @@ def _check_action_refs(root: Path) -> list[str]:
         text = path.read_text(encoding="utf-8")
         for match in WORKFLOW_USES_PATTERN.finditer(text):
             value = _strip_quotes(match.group("value").strip())
-            if "@" not in value:
+            if value.startswith("./"):
                 continue
-            action, ref = value.rsplit("@", maxsplit=1)
-            if ref in FLOATING_ACTION_REFS or re.fullmatch(r"v?\d+", ref) or re.fullmatch(r"v?\d+\.\d+", ref):
-                errors.append(f"{path.relative_to(root)} uses {action}@{ref}; pin actions to a full version or SHA")
+            if value.startswith("docker://"):
+                errors.extend(_check_image_ref(value.removeprefix("docker://"), str(path.relative_to(root))))
+                continue
+            _, separator, ref = value.rpartition("@")
+            if not separator or not (
+                re.fullmatch(r"v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", ref)
+                or re.fullmatch(r"[0-9a-fA-F]{40}", ref)
+            ):
+                errors.append(f"{path.relative_to(root)} uses {value}; pin actions to a full version or SHA")
     return errors
 
 

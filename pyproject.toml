@@ -1,6 +1,6 @@
 [project]
 name = "python-docker-service-template"
-version = "0.2.8"
+version = "0.4.0"
 description = "Command-line tools for Python Docker Service Template."
 readme = "README.md"
 license = "PolyForm-Noncommercial-1.0.0"
@@ -43,6 +43,7 @@ target-version = "py314"
 extend-exclude = [".planning"]
 
 [tool.ruff.lint]
+preview = true
 explicit-preview-rules = true
 select = [
     "E4",
@@ -71,10 +72,15 @@ select = [
     "G",
     "N818",
     "ARG",
+    "S",
     "C90",
     "PLR09",
+    "PLR0914",
+    "PLR0916",
+    "PLR0917",
     "PLR17",
     "PLR2004",
+    "T20",
 ]
 ignore = ["ISC001"]
 
@@ -83,9 +89,23 @@ ignore = ["ISC001"]
     "DTZ",
     "PERF401",
     "PLR2004",
+    "T20",
+    "S101", # pytest assertions are executable test expectations.
 ]
+"scripts/**" = ["T20"]
+# These QA adapters execute reviewed argv arrays without a shell.
+"scripts/check_packaging_smoke.py" = ["S603"]
+"scripts/clone_audit.py" = ["S603"]
+"scripts/clone_tools.py" = ["S603"]
+"scripts/validate_pr_commits.py" = ["S603"]
+# Local Git/Just/Docker fixtures deliberately resolve fake or installed tools via PATH.
+"tests/test_release_recipe.py" = ["S603", "S607"]
+"tests/test_runtime_smoke.py" = ["S607"]
+# Coverage fixtures execute locally constructed Python, never external input.
+"tests/test_crap_local_classes.py" = ["S102"]
 
 [tool.ruff.format]
+preview = false
 quote-style = "double"
 
 [tool.pyright]
@@ -105,6 +125,15 @@ reportUnannotatedClassAttribute = "none"
 reportUnusedCallResult = "none"
 reportImplicitStringConcatenation = "none"
 reportPrivateUsage = "none"
+
+[[tool.pyright.executionEnvironments]]
+root = "src"
+reportUnknownVariableType = "error"
+reportUnknownArgumentType = "error"
+reportUnknownMemberType = "error"
+reportUnknownParameterType = "error"
+reportUnknownLambdaType = "error"
+reportMissingTypeArgument = "error"
 
 [tool.vulture]
 paths = ["src/template_service", "scripts", "tests"]
@@ -131,7 +160,22 @@ skip_covered = true
 source_paths = ["src/template_service"]
 also_copy = ["scripts/"]
 pytest_add_cli_args_test_selection = ["tests/", "-m", "not integration and not slow"]
-pytest_add_cli_args = ["-q", "-p", "no:tach"]
+pytest_add_cli_args = [
+    "-q",
+    "-p",
+    "no:tach",
+    # Репо-мета-тесты сканируют реальные исходники и не имеют смысла внутри
+    # instrumented-дерева mutants/ (тысячи mutmut-аннотаций).
+    "--ignore=tests/test_quality_gates.py",
+    "--ignore=tests/test_clone_acceptances.py",
+    "--ignore=tests/test_clone_audit.py",
+    "--ignore=tests/test_clone_tools.py",
+    "--ignore=tests/test_crap_local_classes.py",
+    "--ignore=tests/test_release_recipe.py",
+    "--ignore=tests/test_runtime_smoke.py",
+    "--ignore=tests/test_validate_pr_title.py",
+    "--ignore=tests/test_validate_release_notes.py",
+]
 on_dependency_change = "rerun"
 
 [tool.importlinter]
@@ -160,8 +204,10 @@ dev = [
     "basedpyright>=1.39.10",
     "deptry>=0.25.1",
     "import-linter>=2.13",
+    "jscpd==5.4.1",
     "mutmut>=3.8.0",
     "pip-audit>=2.10.1",
+    "pyscn==1.33.0",
     "pytest>=9.1.1",
     "pytest-cov>=7",
     "pytest-crap>=0.3.0",

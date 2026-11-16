@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from scripts.validate_pr_title import RELEASABLE_TYPES, TITLE_PATTERN
+from scripts.validate_pr_commits import message_problems
+from scripts.validate_pr_title import TITLE_PATTERN
 
 BEGIN_MARKER = "BEGIN_COMMIT_OVERRIDE"
 END_MARKER = "END_COMMIT_OVERRIDE"
-BREAKING_PREFIX = "BREAKING CHANGE:"
 
 
 def _extract_override(body: str) -> str | None:
@@ -45,34 +45,6 @@ def _split_messages(block: str) -> list[str]:
     return [message for message in messages if message.strip()]
 
 
-def _validate_message(message: str) -> list[str]:
-    problems: list[str] = []
-    lines = message.splitlines()
-    subject = lines[0].strip()
-
-    match = TITLE_PATTERN.fullmatch(subject)
-    if match is None:
-        return [f"'{subject}' is not a Conventional Commit subject."]
-
-    commit_type = match.group("type")
-    if commit_type not in RELEASABLE_TYPES:
-        allowed = ", ".join(sorted(RELEASABLE_TYPES))
-        problems.append(f"'{subject}' uses unsupported type '{commit_type}'. Allowed types: {allowed}.")
-
-    for index, line in enumerate(lines):
-        if not line.startswith(BREAKING_PREFIX):
-            continue
-        remainder = lines[index + 1 :]
-        if remainder and not remainder[0].strip() and any(item.strip() for item in remainder):
-            problems.append(
-                f"'{subject}' has a blank line directly after '{BREAKING_PREFIX}'. "
-                "Release-please ends the breaking-change note there, dropping everything below it. "
-                "Put the bullets on the very next line."
-            )
-
-    return problems
-
-
 def validate_release_notes(body: str, commit_count: int, require_above: int) -> tuple[bool, list[str]]:
     block = _extract_override(body)
 
@@ -94,7 +66,7 @@ def validate_release_notes(body: str, commit_count: int, require_above: int) -> 
     if not messages:
         return False, [f"The {BEGIN_MARKER} block is empty."]
 
-    problems = [problem for message in messages for problem in _validate_message(message)]
+    problems = [problem for message in messages for problem in message_problems(message)]
     if problems:
         return False, problems
 

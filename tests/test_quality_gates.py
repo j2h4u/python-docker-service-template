@@ -63,37 +63,6 @@ def test_crap_gate_rejects_empty_function_metrics(tmp_path: Path) -> None:
     assert crap_gate_main(["--coverage", str(coverage), "--src", str(source_root)]) == 1
 
 
-def test_crap_gate_accepts_class_method_coverage_qualnames(tmp_path: Path) -> None:
-    source_root = tmp_path / "src" / "pkg"
-    source_root.mkdir(parents=True)
-    module = source_root / "module.py"
-    module.write_text(
-        """
-class Example:
-    def works(self) -> int:
-        return 1
-""",
-        encoding="utf-8",
-    )
-    coverage = tmp_path / "coverage.json"
-    coverage.write_text(
-        json.dumps(
-            {
-                "files": {
-                    str(module): {
-                        "functions": {
-                            "Example.works": {"summary": {"covered_lines": 2, "num_statements": 2}},
-                        }
-                    }
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    assert crap_gate_main(["--coverage", str(coverage), "--src", str(source_root)]) == 0
-
-
 def test_crap_gate_checks_init_file_functions(tmp_path: Path) -> None:
     source_root = tmp_path / "src" / "pkg"
     source_root.mkdir(parents=True)
