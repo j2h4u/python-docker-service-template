@@ -39,6 +39,38 @@ first useful runs. A low `max_stack_depth` can make mutation testing faster and
 more local, but in CLI-heavy or framework-heavy code it can also disconnect
 valid tests from code they exercise.
 
+## Killing survivors efficiently
+
+The naive approach — one assertion per surviving mutant — is wrong and
+wasteful. Most mutants survive because existing tests use weak assertions,
+not because tests are missing. Strengthen the assertions instead:
+
+| Weak (mutants survive) | Strong (mutants killed) |
+|---|---|
+| `assert result is not None` | `assert result.field == exact_value` |
+| `assert result > 0` | `assert result == 42.0` |
+| `assert len(items) > 0` | `assert len(items) == 3 and items[0].name == "..."` |
+| Check 2-3 key fields | Check ALL fields of the result object |
+| Check status only | Check status + data + warnings + metadata |
+
+One strengthened test that asserts every field of a result object kills
+dozens of mutants at once. Audit which tests run against a mutated
+function, identify what they DON'T assert, and add the missing
+assertions.
+
+Expect 20-30% of survivors to be equivalent mutants — code changes that
+produce no observable behavior difference. These cannot be killed by any
+test. An 80% kill rate is excellent; 100% is unrealistic for most
+codebases. When you cannot kill a survivor and have verified it is
+equivalent, suppress it deliberately with a documented reason.
+
+When triaging survivors:
+1. Group by function — one function's survivors share a root cause
+2. Check what the covering tests assert vs what the function returns
+3. Add assertions for every unchecked field
+4. Re-run mutation testing on that function only to verify
+5. Only then move to the next function cluster
+
 ## Baselines and timeouts
 
 Do not treat this template repository's own mutation score as a meaningful
