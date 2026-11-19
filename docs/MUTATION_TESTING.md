@@ -19,25 +19,54 @@ mature modules, after important test refactors, and during QA audits. Do not
 wire it into `just check`; mutation testing is intentionally more expensive than
 static analysis and CRAP.
 
+## Pragmatic goals
+
+Do not chase a 100% mutation score. This is the consensus from Google
+("Practical Mutation Testing at Scale"), Microsoft (.NET mutation testing
+guide), and every serious practitioner:
+
+- **80% kill rate is excellent.** 100% is unrealistic for most codebases.
+- **20-30% of survivors are equivalent mutants** — code changes that produce
+  no observable behavior difference. No test can kill them.
+- **Focus on critical code, not every edge case.** Business logic, domain
+  calculations, and decision paths matter more than adapter boilerplate,
+  logging, and display formatting.
+- **Test bloat is a real cost.** Writing a separate test for every micro-edge
+  case makes the suite slower and harder to maintain. Mutation testing is
+  a diagnostic tool, not a checklist to exhaust.
+
+The correct workflow is:
+
+1. Run mutation testing as a periodic audit
+2. Triage survivors into three buckets: real gaps, equivalents, not worth testing
+3. Write tests only for real gaps in critical code
+4. Establish a baseline; forbid new survivors via the ratchet gate
+5. Gradually reduce the baseline over time — do not try to reach zero in one pass
+
 ## Scope and survivors
 
 Configure mutation targets narrowly. Start with production source paths and
-exclude slow and integration tests from the mutmut selection command. If a
-survivor exposes a meaningful behavior gap, address that gap rather than raising
-a broad pardon budget. Mutmut
-can filter invalid mutants with mypy or pyrefly, but not pyright; in this
-template, rely on the normal basedpyright gate separately instead of hiding
-mutants through a type-check filter.
+exclude slow and integration tests from the mutmut selection command.
+
+Exclude from mutation entirely (via `do_not_mutate` in `pyproject.toml`):
+- Generated code (protobuf, migrations)
+- Pure display/formatting modules (text rendering, CLI help)
+- Packaging boilerplate
+
+Do NOT exclude:
+- Domain logic and business calculations
+- Data mapping (proto→domain, domain→wire)
+- Resolution, reconciliation, ranking algorithms
+
+If a survivor exposes a meaningful behavior gap, address that gap rather than
+raising a broad pardon budget. Mutmut can filter invalid mutants with mypy or
+pyrefly, but not pyright; in this template, rely on the normal basedpyright
+gate separately instead of hiding mutants through a type-check filter.
 
 Disable test-selection plugins inside mutation testing unless they are
 explicitly mutation-aware. This template disables Tach for mutmut's pytest
 invocation because Tach's ordinary affected-test optimization can hide the very
 tests mutmut needs for mutant-to-test mapping.
-
-For larger codebases, consider mutmut's stack-depth limiting only after the
-first useful runs. A low `max_stack_depth` can make mutation testing faster and
-more local, but in CLI-heavy or framework-heavy code it can also disconnect
-valid tests from code they exercise.
 
 ## Killing survivors efficiently
 
@@ -58,35 +87,52 @@ dozens of mutants at once. Audit which tests run against a mutated
 function, identify what they DON'T assert, and add the missing
 assertions.
 
-Expect 20-30% of survivors to be equivalent mutants — code changes that
-produce no observable behavior difference. These cannot be killed by any
-test. An 80% kill rate is excellent; 100% is unrealistic for most
-codebases. When you cannot kill a survivor and have verified it is
-equivalent, suppress it deliberately with a documented reason.
-
 When triaging survivors:
 1. Group by function — one function's survivors share a root cause
 2. Check what the covering tests assert vs what the function returns
 3. Add assertions for every unchecked field
 4. Re-run mutation testing on that function only to verify
 5. Only then move to the next function cluster
+6. Stop when remaining survivors are all justified as equivalent or
+   not-worth-testing — do not write a test for every micro-edge case
 
-## Baselines and timeouts
+## Baselines and the ratchet gate
 
-Do not treat this template repository's own mutation score as a meaningful
-baseline. The template intentionally has almost no domain behavior; it only
-proves that the tool is installed, configured, and callable through `just`. Its
-packaging-version helper is excluded from mutation because it is template
-boilerplate rather than domain behavior. After creating a real project, keep the
-recipe, remove template-specific exclusions, narrow `source_paths` to production
-modules, and enable the hard mutation gate by default with zero surviving
-mutants allowed. A baseline or ratchet is not a template default; use one only
-temporarily while migrating an existing project with accumulated mutation debt.
-Make it explicit, forbid new survivors, and reduce it monotonically to zero.
-Surviving mutants are usually prompts to add better assertions. Timeouts should
-be investigated separately: they can mean the mutant created an infinite wait,
-but they can also reveal that the selected test path is too broad or too slow
-for a useful mutation gate.
+A baseline records the current survivor count; the ratchet gate
+(`just mutation-check`) fails if new survivors appear. This prevents
+regressions while allowing gradual improvement.
+
+Workflow for a new project:
+1. Run `just mutation-check` — it will fail because no baseline exists
+2. Triage survivors: fix critical gaps, justify the rest
+3. Run `just mutation-baseline` to record the current state
+4. From now on, `just mutation-check` passes only if survivor count
+   does not increase
+5. Over time, as you strengthen tests and suppress equivalents,
+   refresh the baseline downward
+
+The baseline is a tool, not a goal. Do not keep it at zero artificially
+by excluding everything from mutation. Do not suppress mutants without
+understanding why they survive. The point is to have confidence that
+your critical logic is well-tested, not to achieve a number.
+
+Timeouts should be investigated separately: they can mean the mutant
+created an infinite wait, but they can also reveal that the selected
+test path is too broad or too slow for a useful mutation gate.
+
+## Suppressing survivors
+
+When you cannot kill a survivor, suppress it deliberately:
+
+| Method | When to use | How |
+|---|---|---|
+| File-level `do_not_mutate` | Entire module is display/generated | Add path to `do_not_mutate` in `[tool.mutmut]` |
+| Baseline acceptance | Equivalent or not-worth-testing | Accept in baseline; document why |
+| Rewrite the code | Survivor reveals unnecessary complexity | Simplify the code; the mutant disappears |
+
+Do NOT use inline `# pragma: no mutate` comments — in mutmut 3.8.1 they
+do not reliably cover function bodies. Use file-level exclusion or
+baseline acceptance instead.
 
 ## Running inside the mutants tree (mutmut >= 3.8.1)
 
@@ -106,10 +152,10 @@ behavior.
 ## CPU priority
 
 Mutation runs are long and CPU-bound. Run them at the lowest scheduler
-priority (`nice -n 19`) so they take idle CPU freely but immediately
-yield when production workloads or interactive processes need the
-cores. The Justfile recipes already apply this; keep it when adapting
-them.
+priority (`nice -n 19`) and idle I/O class (`ionice -c 3`) so they take
+free CPU and I/O bandwidth but immediately yield when production
+workloads or interactive processes need the resources. The Justfile
+recipes already apply both; keep them when adapting.
 
 ## Cache and upgrades
 
@@ -119,5 +165,5 @@ exist. Wipe `mutants/` after removing or renaming modules since the last run;
 mutmut rebuilds its stats cheaply. Mutmut minor upgrades can also multiply the
 number of generated mutants — a patch bump once tripled the count on a real
 project. Compare result classes, not raw totals, across upgrades, and refresh
-an explicit baseline through the dedicated recipe only after validating the
-new run end to end.
+the baseline through the dedicated recipe only after validating the new run
+end to end.
