@@ -19,29 +19,17 @@ mature modules, after important test refactors, and during QA audits. Do not
 wire it into `just check`; mutation testing is intentionally more expensive than
 static analysis and CRAP.
 
-## Pragmatic goals
+## Goals
 
-Do not chase a 100% mutation score. This is the consensus from Google
-("Practical Mutation Testing at Scale"), Microsoft (.NET mutation testing
-guide), and every serious practitioner:
+The hard mutation gate runs with **zero surviving mutants allowed** on business
+logic. A baseline or ratchet is a temporary tool while migrating a project with
+accumulated mutation debt — make it explicit, forbid new survivors, and reduce
+it monotonically to zero. Do not keep a baseline as a permanent state.
 
-- **80% kill rate is excellent.** 100% is unrealistic for most codebases.
-- **20-30% of survivors are equivalent mutants** — code changes that produce
-  no observable behavior difference. No test can kill them.
-- **Focus on critical code, not every edge case.** Business logic, domain
-  calculations, and decision paths matter more than adapter boilerplate,
-  logging, and display formatting.
-- **Test bloat is a real cost.** Writing a separate test for every micro-edge
-  case makes the suite slower and harder to maintain. Mutation testing is
-  a diagnostic tool, not a checklist to exhaust.
-
-The correct workflow is:
-
-1. Run mutation testing as a periodic audit
-2. Triage survivors into three buckets: real gaps, equivalents, not worth testing
-3. Write tests only for real gaps in critical code
-4. Establish a baseline; forbid new survivors via the ratchet gate
-5. Gradually reduce the baseline over time — do not try to reach zero in one pass
+Exclude from mutation entirely (display, logging, generated code) — then every
+remaining mutant in business logic must be killed by a test. If a mutant seems
+impossible to kill, the code is probably too complex: simplify it until the
+mutant either becomes testable or disappears.
 
 ## Scope and survivors
 
@@ -119,20 +107,6 @@ your critical logic is well-tested, not to achieve a number.
 Timeouts should be investigated separately: they can mean the mutant
 created an infinite wait, but they can also reveal that the selected
 test path is too broad or too slow for a useful mutation gate.
-
-## Suppressing survivors
-
-When you cannot kill a survivor, suppress it deliberately:
-
-| Method | When to use | How |
-|---|---|---|
-| File-level `do_not_mutate` | Entire module is display/generated | Add path to `do_not_mutate` in `[tool.mutmut]` |
-| Baseline acceptance | Equivalent or not-worth-testing | Accept in baseline; document why |
-| Rewrite the code | Survivor reveals unnecessary complexity | Simplify the code; the mutant disappears |
-
-Do NOT use inline `# pragma: no mutate` comments — in mutmut 3.8.1 they
-do not reliably cover function bodies. Use file-level exclusion or
-baseline acceptance instead.
 
 ## Running inside the mutants tree (mutmut >= 3.8.1)
 
